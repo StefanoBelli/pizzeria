@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2021-01-03T07:31:18.259Z" agent="5.0 (Windows)" etag="QvfD8dOhSohH_z8IMoeP" version="14.1.7" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-03T08:00:16.694Z" agent="5.0 (Windows)" etag="m7QEszyp3DAOh0DFFI8J" version="14.1.7" type="github">
   <diagram id="R2lEEEUBdFMjLlhIrx00" name="Page-1">
     <mxGraphModel dx="3544" dy="1210" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
       <root>
@@ -650,7 +650,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="lJe-HFZIRrYfDIe7xfwW-4" value="Per il tavolo&lt;br&gt;occupato&lt;br&gt;si rilascia" style="rhombus;whiteSpace=wrap;html=1;fontSize=15;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="476.25" y="563.75" width="130" height="107.5" as="geometry" />
+          <mxGeometry x="476.25" y="563.75" width="133.75" height="107.5" as="geometry" />
         </mxCell>
         <mxCell id="lJe-HFZIRrYfDIe7xfwW-5" value="" style="endArrow=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="lJe-HFZIRrYfDIe7xfwW-4">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
@@ -917,6 +917,18 @@
             <mxPoint x="939.9700000000008" y="119.58000000000004" as="sourcePoint" />
             <mxPoint x="980.5600000000001" y="119.58000000000004" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="lJe-HFZIRrYfDIe7xfwW-89" value="" style="endArrow=none;html=1;fillColor=#000000;fontSize=15;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="543.01" y="701.2500000000002" as="sourcePoint" />
+            <mxPoint x="543.01" y="671.2500000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lJe-HFZIRrYfDIe7xfwW-90" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="538.59" y="696.25" width="10" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="lJe-HFZIRrYfDIe7xfwW-91" value="Pagato" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="503.6" y="718.75" width="83.37" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
