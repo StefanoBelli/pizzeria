@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2021-01-03T07:06:19.218Z" agent="5.0 (Windows)" etag="pR66xlfXrsDxaugUS12g" version="14.1.7" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-03T07:18:46.143Z" agent="5.0 (Windows)" etag="TMYcltB-pbAkxuUW3Gi8" version="14.1.7" type="github">
   <diagram id="R2lEEEUBdFMjLlhIrx00" name="Page-1">
-    <mxGraphModel dx="3993" dy="1412" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
+    <mxGraphModel dx="3544" dy="1210" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -610,7 +610,7 @@
             <mxPoint x="807.21" y="557.5" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Chu029IUEQaQD8QUGk9Y-11" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;" parent="1" vertex="1">
+        <mxCell id="Chu029IUEQaQD8QUGk9Y-11" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fillColor=#000000;" parent="1" vertex="1">
           <mxGeometry x="802.5" y="547.5" width="10" height="10" as="geometry" />
         </mxCell>
         <mxCell id="Chu029IUEQaQD8QUGk9Y-12" value="Data e ora&amp;nbsp; occupazione" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" parent="1" vertex="1">
@@ -851,15 +851,6 @@
         </mxCell>
         <mxCell id="lJe-HFZIRrYfDIe7xfwW-66" value="(1,1)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" vertex="1" parent="1">
           <mxGeometry x="513.93" y="187.5" width="40" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lJe-HFZIRrYfDIe7xfwW-68" value="" style="endArrow=none;html=1;fontSize=15;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="789.62" y="570" as="sourcePoint" />
-            <mxPoint x="849.62" y="570" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="lJe-HFZIRrYfDIe7xfwW-69" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fillColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="780" y="564.3" width="10" height="10" as="geometry" />
         </mxCell>
         <mxCell id="lJe-HFZIRrYfDIe7xfwW-71" value="Data e ora completamento&lt;br&gt;richiesta" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" vertex="1" parent="1">
           <mxGeometry x="960.59" y="810" width="184.03" height="20" as="geometry" />
