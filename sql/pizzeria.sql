@@ -10,13 +10,10 @@ create table Lavoratore(
 	ComuneNascita varchar(34) not null,
 	CF char(16) not null,
 	IsManager boolean not null,
-	unique(Nome, 
-		Cognome, 
-		ComuneResidenza, 
-		DataNascita, 
-		ComuneNascita, 
-		CF, 
-		IsManager)
+	
+	unique(
+		CF
+	) 
 );
 
 create table Cameriere(
@@ -31,14 +28,19 @@ create table LavoratoreCucina(
 create table Turno(
 	DataOraInizio timestamp primary key,
 	DataOraFine timestamp not null,
+	
 	check(
 		DataOraFine > DataOraInizio
+	),
+
+	unique(
+		DataOraFine
 	)
 );
 
 create table Tavolo(
 	NumTavolo smallint primary key,
-	NumMaxPersone smallint not null,
+	NumMaxCommensali smallint not null,
 	IsOccupato boolean not null
 );
 
@@ -53,8 +55,13 @@ create table Scontrino(
 	IdFiscale int primary key,
 	DataOraEmissione timestamp not null,
 	CostoTotale float not null
+
 	check(
 		CostoTotale > 0
+	),
+	
+	unique(
+		DataOraEmissione
 	)
 );
 
@@ -67,6 +74,7 @@ create table TavoloOccupato(
 	IsPagato boolean not null,
 	Tavolo smallint not null references Tavolo(NumTavolo),
 	Scontrino int references Scontrino(IdFiscale),
+
 	check(
 		(Scontrino is NULL and IsPagato = False)
 		or (Scontrino is not NULL and (IsPagato = False or IsPagato = True))
@@ -76,12 +84,17 @@ create table TavoloOccupato(
 create table Ordinazione(
 	TavoloOccupato timestamp references TavoloOccupato(DataOraOccupazione),
 	NumOrdinazionePerTavolo smallint,
-	DataOraRichiesta timestamp not null,
+	DataOraRichiesta timestamp,
 	Costo float not null,
 	DataOraCompletamento timestamp,
 	primary key(TavoloOccupato, NumOrdinazionePerTavolo),
+
 	check(
 		Costo > 0
+	),
+
+	unique(
+		DataOraRichiesta
 	)
 );
 
@@ -90,6 +103,7 @@ create table ProdottoNelMenu(
 	CostoUnitario float not null,
 	IsAlcolico boolean,
 	IsBarMenu boolean not null,
+
 	check(
 		CostoUnitario > 0 and (
 			(IsAlcolico is not NULL and IsBarMenu is True) or
@@ -100,7 +114,8 @@ create table ProdottoNelMenu(
 create table Ingrediente(
 	Nome varchar(20) primary key,
 	NumDisponibilitaScorte smallint not null,
-	CostoAlKg float not null
+	CostoAlKg float not null,
+	
 	check(
 		CostoAlKg > 0 and NumDisponibilitaScorte >= 0
 	)
@@ -125,6 +140,7 @@ create table SceltaDelCliente(
 		references Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo),
 	primary key (TavoloOccupato, NumOrdinazionePerTavolo, 
 		NumSceltaPerOrdinazione),
+	
 	check(
 		(DataOraEspletata is not NULL and DataOraCompletamento is not NULL) 
 		or (DataOraEspletata is not NULL and DataOraCompletamento is NULL) 
@@ -156,6 +172,23 @@ create table AggiuntaAlProdotto(
 );
 
 delimiter !
+
+create function IsInBetween(
+	lowerBound int, 
+	upperBound int, 
+	val int)
+returns boolean
+deterministic
+begin
+	return (val >= lowerBound and val <= upperBound);
+end!
+
+create function GetMyUsername()
+returns varchar(10)
+deterministic
+begin
+	return (substring_index(current_user(), '@', 1));
+end!
 
 create procedure CreateUser_Internal(
 	in username varchar(10), 
@@ -336,9 +369,28 @@ end!
 
 create procedure SituazioneTavoliAssegnati()
 begin
+	select Ta.NumTavolo, Ta.IsOccupato, Toc.Cognome, Toc.IsServitoAlmenoUnaVolta
+	from Tavolo Ta left join TavoloOccupato Toc on Ta.NumTavolo = Toc.Tavolo
+	where Toc.Scontrino is NULL and Toc.Tavolo = any (
+		select Tavolo
+		from TurnoAssegnato Tas join Turno Tur on Tas.Turno = Tur.DataOraInizio
+		where Tas.Cameriere = GetMyUsername() and 
+			InBetween(Tur.DataOraInizio, Tur.DataOraFine, now()));
 end!
 
-create procedure PrendiComanda()
+create procedure SituazioneOrdinazioniDaConsegnare()
+begin
+end!
+
+create procedure AggiungiSceltaAllOrdCorrentePerTavolo()
+begin
+end!
+
+create procedure CreaNuovaOrdinazionePerTavolo(in numTavolo smallint)
+begin
+end!
+
+create procedure ChiudiOrdinazionePerTavolo()
 begin
 end!
 
@@ -362,7 +414,20 @@ end!
 
 -- Manager
 
-create procedure AssegnaNuovoTavoloAlCliente()
+create procedure OttieniTavoloDisponibile(
+	in numCommensali smallint)
+begin
+	select NumTavolo
+		from Tavolo T
+		where T.IsOccupato = false 
+			and T.NumMaxCommensali <= numCommensali 
+			and T.NumTavolo = any (
+				select Tavolo
+				from Turno Tu
+				where IsBetween(Tu.DataOraInizio, Tu.DataOraFine, now()));
+end!
+
+create procedure RegistraTavolo()
 begin
 end!
 
@@ -374,8 +439,32 @@ create procedure MarcaScontrinoPagatoETavoloLibero()
 begin
 end!
 
-create procedure AssegnaTurno()
+create procedure CreaTurno(
+	in dataOraInizio timestamp,
+	in dataOraFine timestamp)
 begin
+	declare exit handler for sqlexception
+	begin
+		resignal;
+	end;
+
+	insert into Turno(DataOraInizio, DataOraFine)
+		values(dataOraInizio, dataOraFine);
+end!
+
+create procedure AssegnaTurno(
+	in dataOraInizio timestamp,
+	in usernameCameriere varchar(10),
+	in numTavolo smallint
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		resignal;
+	end;
+
+	insert into TurnoAssegnato(Turno, Tavolo, Cameriere) 
+		values(dataOraInizio, numTavolo, usernameCameriere);
 end!
 
 create procedure VisualizzaEntrate()
