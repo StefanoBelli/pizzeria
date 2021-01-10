@@ -1,3 +1,18 @@
+--
+-- TODO
+--
+-- * scontrino
+-- * conteggio scorte
+--
+-- * Needed consistency checks
+-- * where # select > 2 => Optimize if possible
+-- * Functional testing
+--
+-- * Indexes
+-- * Transaction Isolation
+-- * Integ. ref. on update/delete
+--
+
 create database pizzeriadb;
 use pizzeriadb;
 
@@ -211,7 +226,6 @@ end!
 
 create procedure GivePrivOnResToUser_Internal(
 	in username varchar(10),
-	in privlst varchar(100),
 	in singleres varchar(50),
 	in grantOpt boolean) 
 begin
@@ -220,7 +234,7 @@ begin
 		resignal;
 	end;
 
-	set @sql := concat("grant ", privlst, " on procedure ", singleres, " to ", username);
+	set @sql := concat("grant execute on procedure ", singleres, " to ", username);
 	if grantOpt = true then
 		set @sql := concat(@sql, " with grant option;");
 	else
@@ -301,20 +315,20 @@ begin
 	
 	call CreateUser_Internal(username, password);
 	
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaManager", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaPizzaiolo", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaBarman", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaCameriere", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.OttieniTavoloDisponibile", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaTurno", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AssegnaTurno", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AggiungiProdottoBar", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AggiungiProdottoPizzeria", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaIngrediente", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaComposizione", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.TogliDalMenu", true);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaTavolo", true);
-
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaManager", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaPizzaiolo", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaBarman", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaCameriere", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.OttieniTavoloDisponibile", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaTurno", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.AssegnaTurno", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.AggiungiProdottoBar", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.AggiungiProdottoPizzeria", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaIngrediente", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaComposizione", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.TogliDalMenu", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaTavolo", true);
+	
 	commit;
 end!
 
@@ -340,7 +354,10 @@ begin
 	call Insertion_LavoratoreCucina_Internal(username, false);
 
 	call CreateUser_Internal(username, password);
-
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.SituazioneOrdini", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.PrendiInCaricoOrdine", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.EspletaOrdine", false);
+	
 	commit;
 end!
 
@@ -366,6 +383,10 @@ begin
 	call Insertion_LavoratoreCucina_Internal(username, true);
 
 	call CreateUser_Internal(username, password);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.SituazioneOrdini", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.PrendiInCaricoOrdine", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.EspletaOrdine", false);
+	
 
 	commit;
 end!
@@ -392,7 +413,13 @@ begin
 	call Insertion_Cameriere_Internal(username);
 
 	call CreateUser_Internal(username, password);
-	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.SituazioneTavoliAssegnati", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.SituazioneTavoliAssegnati", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.SituazioneOrdinazioniDaConsegnare", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaNuovaOrdinazionePerTavolo", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.ChiudiOrdinazionePerTavolo", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.AggiungiSceltaAllOrdCorrentePerTavolo", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.AggiungiIngredienteAllaScelta", false);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.ConsegnaOrdinazione", false);
 
 	commit;
 end!
@@ -639,20 +666,169 @@ create procedure ConsegnaOrdinazione(
 	in sceltaPerOrd smallint
 )
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @nowTime = now();
+
+	-- checks
+	-- aggiunta al conto
+
+	update
+		SceltaDelCliente
+	set
+		DataOraCompletamento = @nowTime
+	where
+		TavoloOccupato = tavoloOccupato and
+		NumOrdinazionePerTavolo = ordPerTavolo and
+		NumSceltaPerOrdinazione = sceltaPerOrd and
+		DataOraCompletamento is NULL and
+		DataOraEspletata is not NULL;
+
+	set @isTutteConsegnate = (
+			select
+				count(*) = max(NumSceltaPerOrdinazione)
+			from
+				SceltaDelCliente
+			where
+				TavoloOccupato = tavoloOccupato and
+				NumOrdinazionePerTavolo = ordPerTavolo and
+				NumSceltaPerOrdinazione = sceltaPerOrd and
+				DataOraCompletamento is not NULL);
+	
+	if @isTutteConsegnate = true then
+		update
+			Ordinazione
+		set
+			DataOraCompletamento = @nowTime
+		where
+			TavoloOccupato = tavoloOccupato and
+			NumOrdinazionePerTavolo = ordPerTavolo and
+			DataOraCompletamento is NULL;
+	end if;
+
+	commit;
 end!
 
 -- Pizzaiolo e barman
 
-create procedure SituazioneOrdiniAncoraInAttesa()
+create procedure SituazioneOrdini(
+	in inAttesaDiPresaInCarico boolean
+)
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @sql = concat("
+		select 
+			Sdc.TavoloOccupato as TavoloOccupato,
+			Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
+			Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione,
+			Sdc.ProdottoNelMenu as ProdottoNelMenu,
+			Ap.Ingrediente as Ingrediente,
+			Ap.QuantitaInGr as QuantitaInGr
+		from 
+			SceltaDelCliente Sdc left join AggiuntaAlProdotto Ap on
+			Sdc.TavoloOccupato = Ap.TavoloOccupato and
+			Sdc.NumOrdinazionePerTavolo = Ap.NumOrdinazionePerTavolo and
+			Sdc.NumSceltaPerOrdinazione = Ap.NumSceltaPerOrdinazione");
+
+	if inAttesaDiPresaInCarico = true then
+		set @sql = concat(@sql, "
+			where
+				Sdc.LavoratoreCucinaInCarico is NULL;");
+	else
+		set @sql = concat(@sql, "
+			where
+				Sdc.LavoratoreCucinaInCarico = GetMyUsername();");
+	end if;
+
+	prepare stmt from @sql;
+	execute stmt;
+	deallocate prepare stmt;
+
+	commit;
 end!
 
-create procedure PrendiInCaricoOrdine()
+create procedure PrendiInCaricoOrdine(
+	in tavoloOccupato timestamp,
+	in numOrdinazionePerTavolo smallint,
+	in numSceltaPerOrdinazione smallint
+)
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @myUsername = GetMyUsername();
+
+	set @isBarMenu = (
+		select 
+			Pm.IsBarMenu
+		from
+			SceltaDelCliente Sdc join ProdottoNelMenu Pm on 
+				Sdc.ProdottoNelMenu = Pm.Nome
+		where
+			Sdc.TavoloOccupato = tavoloOccupato and
+			Sdc.NumOrdinazionePerTavolo = numOrdinazionePerTavolo and
+			Sdc.NumSceltaPerOrdinazione = numSceltaPerOrdinazione);
+		
+	set @isBarman = (
+		select
+			IsBarman
+		from
+			LavoratoreCucina Lc
+		where
+			Lc.Lavoratore = @myUsername);
+
+	if @isBarman = @isBarMenu then
+		update 
+			SceltaDelCliente Sdc
+		set
+			Sdc.LavoratoreCucinaInCarico = @myUsername
+		where
+			Sdc.LavoratoreCucinaInCarico is NULL and
+			Sdc.TavoloOccupato = tavoloOccupato and
+			Sdc.NumOrdinazionePerTavolo = numOrdinazionePerTavolo and
+			Sdc.NumSceltaPerOrdinazione = numSceltaPerOrdinazione;
+	else
+		signal sqlstate '45000';
+	end if;
+
+	commit;
 end!
 
-create procedure EspletaOrdine()
+create procedure EspletaOrdine(
+	in tavoloOccupato timestamp,
+	in numOrdinazionePerTavolo smallint,
+	in numSceltaPerOrdinazione smallint
+)
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	update
+		SceltaDelCliente Sdc
+	set
+		Sdc.DataOraEspletata = now()
+	where
+		Sdc.LavoratoreCucinaInCarico = GetMyUsername() and
+		Sdc.TavoloOccupato = tavoloOccupato and
+		Sdc.NumOrdinazionePerTavolo = numOrdinazionePerTavolo and
+		Sdc.NumSceltaPerOrdinazione = numSceltaPerOrdinazione;
+
+	commit;
 end!
 
 -- Manager
@@ -702,14 +878,6 @@ begin
 	select @numTavoloTrovato;
 
 	commit;
-end!
-
-create procedure RilasciaScontrinoPerTavolo()
-begin
-end!
-
-create procedure MarcaScontrinoPagatoETavoloLibero()
-begin
 end!
 
 create procedure CreaTurno(
@@ -854,6 +1022,14 @@ begin
 end!
 
 create procedure AumentaScorteIngrediente()
+begin
+end!
+
+create procedure RilasciaScontrinoPerTavolo()
+begin
+end!
+
+create procedure MarcaScontrinoPagatoETavoloLibero()
 begin
 end!
 
