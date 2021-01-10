@@ -295,7 +295,7 @@ begin
 		rollback;
 		resignal;
 	end;
-	
+
 	call Insertion_Lavoratore_Internal(nome, cognome, comuneResidenza, 
 		dataNascita, comuneNascita, cf, username, true);
 	
@@ -402,12 +402,16 @@ end!
 create procedure SituazioneTavoliAssegnati()
 begin
 	select 
-		Ta.NumTavolo, Ta.IsOccupato, Toc.Cognome, Toc.IsServitoAlmenoUnaVolta
+		Ta.NumTavolo as NumTavolo, 
+		Toc.Cognome as Cognome,
+		Toc.IsServitoAlmenoUnaVolta as IsServitoAlmenoUnaVolta,
+		Toc.DataOraOccupazione as DataOraOccupazione
 	from 
 		Tavolo Ta left join TavoloOccupato Toc on 
-			Ta.NumTavolo = Toc.Tavolo
-	where 
-		Toc.Scontrino is NULL and Toc.Tavolo = any (
+			Ta.NumTavolo = Toc.Tavolo and 
+			Toc.Scontrino is NULL
+	where
+		Toc.Tavolo = any (
 			select 
 				Tavolo
 			from 
@@ -423,14 +427,19 @@ end!
 create procedure SituazioneOrdinazioniDaConsegnare()
 begin
 	select 
-		Tocc.NumTavolo, Tocc.Cognome, Sdc.NumOrdinazionePerTavolo, 
-		Sdc.NumSceltaPerOrdinazione, Sdc.DataOraEspletata
+		Tocc.NumTavolo as NumTavolo, 
+		Tocc.Cognome as Cognome, 
+		Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo, 
+		Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione, 
+		Sdc.DataOraEspletata as DataOraEspletata,
+		Tocc.DataOraOccupazione as DataOraOccupazione
 	from 
 		SceltaDelCliente Sdc join Ordinazione Ord on
 			Sdc.TavoloOccupato = Ord.TavoloOccupato and
-			Sdc.NumOrdinazionePerTavolo = Ord.NumOrdinazionePerTavolo 
+			Sdc.NumOrdinazionePerTavolo = Ord.NumOrdinazionePerTavolo
 		join TavoloOccupato Tocc on 
-			Tocc.DataOraOccupazione = Ord.TavoloOccupato
+			Tocc.DataOraOccupazione = Ord.TavoloOccupato and 
+			Tocc.Scontrino is NULL
 	where 
 		Ord.DataOraRichista is not NULL and 
 		Ord.DataOraCompletamento is NULL and
@@ -475,7 +484,9 @@ begin
 	end if;
 end!
 
-create procedure CreaNuovaOrdinazionePerTavolo(in numTavolo smallint)
+create procedure CreaNuovaOrdinazionePerTavolo(
+	in tavoloOccupato timestamp
+)
 begin
 	declare exit handler for sqlexception
 	begin
@@ -483,36 +494,49 @@ begin
 		resignal;
 	end;
 
-	set @tavoloOccupato = (
-		select 
-			DataOraOccupazione
-		from 
-			TavoloOccupato
-		where 
-			numTavolo = any (
-				select 
-					Tur.Tavolo
-				from 
-					TurnoAssegnato Tas join Turno Tur on 
-						Tas.Turno = Tur.DataOraInizio
-				where 
-					Tas.Cameriere = GetMyUsername() and 
-						IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())));
-
 	set @numOrd = (
 		select 
-			count(*)
+			max(Ord.NumOrdinazionePerTavolo)
 		from 
 			Ordinazione Ord join TavoloOccupato Tocc on 
 				Ord.TavoloOccupato = Tocc.DataOraOccupazione
-		where 
-			Tocc.DataOraOccupazione = @tavoloOccupato
+		where
+			Ord.TavoloOccupato = @tavoloOccupato
 	) + 1;
 
 	insert into Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo)
-		values(@tavoloOccupato, @numOrd);
+		values(tavoloOccupato, @numOrd);
+
+	select @numOrd;
 
 	commit;
+end!
+
+create trigger NoOrdinazioneInPending
+before update on Ordinazione for each row
+begin
+	declare counter int;
+
+	select 
+		count(*)
+	from
+		Ordinazione Ord join TavoloOccupato Tocc on 
+			Tocc.DataOraOccupazione = Ord.TavoloOccupato 
+	where 
+		Ord.DataOraRichiesta is NULL and Tocc.NumTavolo = any (
+			select 
+				Tur.Tavolo
+			from 
+				TurnoAssegnato Tas join Turno Tur on 
+					Tas.Turno = Tur.DataOraInizio
+			where 
+				Tas.Cameriere = GetMyUsername() and 
+					IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())) into counter;
+
+	if counter = 0 then
+		signal sqlstate '45000';
+
+	end if;
 end!
 
 create procedure ChiudiOrdinazionePerTavolo()
@@ -534,9 +558,9 @@ begin
 			from 
 				Ordinazione Ord join TavoloOccupato Tocc on 
 					Ord.TavoloOccupato = Tocc.DataOraOccupazione join Tavolo Tav on
-						Tav.NumTavolo = Tocc.Tavolo
+						Tav.NumTavolo = Tocc.Tavolo 
 			where
-				Ord.DataOraRichiesta is NULL and Tav.NumTavolo = (
+				Tocc.Scontrino is NULL and Ord.DataOraRichiesta is NULL and Tav.NumTavolo = (
 					select 
 						Tur.Tavolo
 					from 
@@ -545,19 +569,75 @@ begin
 					where 
 						Tas.Cameriere = GetMyUsername() and 
 							IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())));
-	
+
 	commit;
 end!
 
-create procedure AggiungiSceltaAllOrdCorrentePerTavolo()
+create procedure AggiungiSceltaAllOrdCorrentePerTavolo(
+	in tavoloOccupato timestamp,
+	in ordPerTavolo smallint,
+	in nomeProdottoMenu varchar(20)
+)
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @numSc = (
+		select
+			max(Sdc.NumSceltaPerOrdinazione)
+		from
+			Ordinazione Ord join TavoloOccupato Tocc on
+				Ord.TavoloOccupato = Tocc.DataOraOccupazione
+			join SceltaDelCliente Sdc on
+				Sdc.TavoloOccupato = Ord.TavoloOccupato and
+				Sdc.NumOrdinazionePerTavolo = Ord.NumOrdinazionePerTavolo
+		where
+			Sdc.TavoloOccupato = @tavoloOccupato and 
+			Sdc.NumOrdinazionePerTavolo = @numOrd
+	) + 1;
+	
+	-- checks
+	-- diminuisci scorte
+ 
+	insert into SceltaDelCliente(TavoloOccupato, NumOrdinazionePerTavolo, NumSceltaPerOrdinazione, ProdottoNelMenu)
+		values(tavoloOccupato, ordPerTavolo, @numSc, nomeProdottoMenu);
+
+	select @numSc;
+
+	commit;
 end!
 
-create procedure AggiungiIngredienteAllaScelta()
+create procedure AggiungiIngredienteAllaScelta(
+	in tavoloOccupato timestamp,
+	in ordPerTavolo smallint,
+	in sceltaPerOrd smallint,
+	in ingredienteAggiuntivo varchar(20),
+	in quantitaInGr float
+)
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	-- checks
+	-- diminuisci scorte
+
+	insert into AggiuntaAlProdotto(TavoloOccupato, NumOrdinazionePerTavolo, NumSceltaPerOrdinazione, Ingrediente, QuantitaInGr)
+		values(tavoloOccupato, ordPerTavolo, sceltaPerOrd, ingredienteAggiuntivo, quantitaInGr);
+
+	commit;
 end!
 
-create procedure ConsegnaOrdinazione()
+create procedure ConsegnaOrdinazione(
+	in tavoloOccupato timestamp,
+	in ordPerTavolo smallint,
+	in sceltaPerOrd smallint
+)
 begin
 end!
 
@@ -763,7 +843,7 @@ begin
 		resignal;
 	end;
 
-	insert into CreaTavolo(NumTavolo, NumMaxCommensali, IsOccupato)
+	insert into Tavolo(NumTavolo, NumMaxCommensali, IsOccupato)
 		values(numTavolo, numMaxCommensali, false);
 	
 	commit;
