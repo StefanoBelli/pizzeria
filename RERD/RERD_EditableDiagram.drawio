@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2021-01-09T18:43:55.314Z" agent="5.0 (X11)" etag="lGKjYP1993K82OSgp7Js" version="14.1.9" type="github">
+<mxfile host="app.diagrams.net" modified="2021-01-10T06:38:12.032Z" agent="5.0 (Windows)" etag="pqqX7F1NtMNSczNNG4X9" version="14.1.8" type="github">
   <diagram id="R2lEEEUBdFMjLlhIrx00" name="Page-1">
-    <mxGraphModel dx="2317" dy="766" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
+    <mxGraphModel dx="2736" dy="847" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" extFonts="Permanent Marker^https://fonts.googleapis.com/css?family=Permanent+Marker">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -459,7 +459,7 @@
         <mxCell id="Chu029IUEQaQD8QUGk9Y-4" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontSize=15;fillColor=#FFFFFF;" parent="1" vertex="1">
           <mxGeometry x="859.4100000000001" y="58.05000000000001" width="10" height="10" as="geometry" />
         </mxCell>
-        <mxCell id="Chu029IUEQaQD8QUGk9Y-5" value="# max&lt;br&gt;persone" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" parent="1" vertex="1">
+        <mxCell id="Chu029IUEQaQD8QUGk9Y-5" value="# max&lt;br&gt;&lt;div&gt;commensali&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" parent="1" vertex="1">
           <mxGeometry x="814.97" y="24.75" width="52.5" height="20" as="geometry" />
         </mxCell>
         <mxCell id="Chu029IUEQaQD8QUGk9Y-6" value="All&#39;arrivo&lt;br&gt;del cliente&lt;br&gt;diventa" style="rhombus;whiteSpace=wrap;html=1;fontSize=15;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
@@ -931,6 +931,9 @@
         </mxCell>
         <mxCell id="4tzePa8cnPgqvknZtASY-29" value="(1,1)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" parent="1" vertex="1">
           <mxGeometry x="-181.25" y="665" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="qoJuCFEmZhZu1WkQF8xo-1" value="&lt;font style=&quot;font-size: 15px&quot;&gt;(0,1)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="740" y="1005" width="40" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
