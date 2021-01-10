@@ -113,7 +113,7 @@ create table ProdottoNelMenu(
 
 create table Ingrediente(
 	Nome varchar(20) primary key,
-	NumDisponibilitaScorte smallint not null,
+	NumDisponibilitaScorte int not null,
 	CostoAlKg float not null,
 	
 	check(
@@ -122,8 +122,10 @@ create table Ingrediente(
 );
 
 create table ComposizioneDiBase(
-	ProdottoNelMenu varchar(20) references ProdottoNelMenu(Nome),
-	Ingrediente varchar(20) references Ingrediente(Nome),
+	ProdottoNelMenu varchar(20) references ProdottoNelMenu(Nome) 
+		on delete cascade,
+	Ingrediente varchar(20) references Ingrediente(Nome)
+		on delete restrict,
 	primary key (ProdottoNelMenu, Ingrediente)
 );
 
@@ -171,6 +173,8 @@ create table AggiuntaAlProdotto(
 	)
 );
 
+set autocommit = 0;
+
 delimiter !
 
 create function IsInBetween(
@@ -199,7 +203,7 @@ begin
 		resignal;
 	end;
 
-	set @sql := concat("create user ", username, "@'%' identified by ", password);
+	set @sql := concat("create user ", username, "@'%' identified by '", password,"';");
 	prepare stmt from @sql;
 	execute stmt;
 	deallocate prepare stmt;
@@ -209,16 +213,18 @@ create procedure GivePrivOnResToUser_Internal(
 	in username varchar(10),
 	in privlst varchar(100),
 	in singleres varchar(50),
-	in grantOpt boolean)
+	in grantOpt boolean) 
 begin
 	declare exit handler for sqlexception
 	begin
 		resignal;
 	end;
 
-	set @sql := concat("grant ", privlst, " on ", singleres, " to ", username);
+	set @sql := concat("grant ", privlst, " on procedure ", singleres, " to ", username);
 	if grantOpt = true then
-		set @sql := concat(@sql, " with grant option");
+		set @sql := concat(@sql, " with grant option;");
+	else
+		set @sql := concat(@sql, ";");
 	end if;
 
 	prepare stmt from @sql;
@@ -286,14 +292,30 @@ create procedure CreaManager(
 begin
 	declare exit handler for sqlexception
 	begin
-		resignal; -- raise again the sql exception to the caller
+		rollback;
+		resignal;
 	end;
 	
 	call Insertion_Lavoratore_Internal(nome, cognome, comuneResidenza, 
 		dataNascita, comuneNascita, cf, username, true);
 	
 	call CreateUser_Internal(username, password);
-	call GivePrivOnResToUser_Internal(concat(username,"@'%'"), "all privileges", "pizzeriadb.*", true);
+	
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaManager", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaPizzaiolo", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaBarman", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaCameriere", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.OttieniTavoloDisponibile", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaTurno", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AssegnaTurno", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AggiungiProdottoBar", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.AggiungiProdottoPizzeria", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaIngrediente", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaComposizione", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.TogliDalMenu", true);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.CreaTavolo", true);
+
+	commit;
 end!
 
 create procedure CreaPizzaiolo(
@@ -308,7 +330,8 @@ create procedure CreaPizzaiolo(
 begin
 	declare exit handler for sqlexception
 	begin
-		resignal; -- raise again the sql exception to the caller
+		rollback;
+		resignal;
 	end;
 	
 	call Insertion_Lavoratore_Internal(nome, cognome, comuneResidenza, 
@@ -317,6 +340,8 @@ begin
 	call Insertion_LavoratoreCucina_Internal(username, false);
 
 	call CreateUser_Internal(username, password);
+
+	commit;
 end!
 
 create procedure CreaBarman(
@@ -331,7 +356,8 @@ create procedure CreaBarman(
 begin
 	declare exit handler for sqlexception
 	begin
-		resignal; -- raise again the sql exception to the caller
+		rollback;
+		resignal; 
 	end;
 	
 	call Insertion_Lavoratore_Internal(nome, cognome, comuneResidenza, 
@@ -340,6 +366,8 @@ begin
 	call Insertion_LavoratoreCucina_Internal(username, true);
 
 	call CreateUser_Internal(username, password);
+
+	commit;
 end!
 
 create procedure CreaCameriere(
@@ -354,7 +382,8 @@ create procedure CreaCameriere(
 begin
 	declare exit handler for sqlexception
 	begin
-		resignal; -- raise again the sql exception to the caller
+		rollback;
+		resignal;
 	end;
 	
 	call Insertion_Lavoratore_Internal(nome, cognome, comuneResidenza, 
@@ -363,34 +392,168 @@ begin
 	call Insertion_Cameriere_Internal(username);
 
 	call CreateUser_Internal(username, password);
+	call GivePrivOnResToUser_Internal(username, "execute", "pizzeriadb.SituazioneTavoliAssegnati", false);
+
+	commit;
 end!
 
 -- Cameriere
 
 create procedure SituazioneTavoliAssegnati()
 begin
-	select Ta.NumTavolo, Ta.IsOccupato, Toc.Cognome, Toc.IsServitoAlmenoUnaVolta
-	from Tavolo Ta left join TavoloOccupato Toc on Ta.NumTavolo = Toc.Tavolo
-	where Toc.Scontrino is NULL and Toc.Tavolo = any (
-		select Tavolo
-		from TurnoAssegnato Tas join Turno Tur on Tas.Turno = Tur.DataOraInizio
-		where Tas.Cameriere = GetMyUsername() and 
-			InBetween(Tur.DataOraInizio, Tur.DataOraFine, now()));
+	select 
+		Ta.NumTavolo, Ta.IsOccupato, Toc.Cognome, Toc.IsServitoAlmenoUnaVolta
+	from 
+		Tavolo Ta left join TavoloOccupato Toc on 
+			Ta.NumTavolo = Toc.Tavolo
+	where 
+		Toc.Scontrino is NULL and Toc.Tavolo = any (
+			select 
+				Tavolo
+			from 
+				TurnoAssegnato Tas join Turno Tur on 
+					Tas.Turno = Tur.DataOraInizio
+			where 
+				Tas.Cameriere = GetMyUsername() and 
+					IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now()));
+
+	commit;
 end!
 
 create procedure SituazioneOrdinazioniDaConsegnare()
 begin
+	select 
+		Tocc.NumTavolo, Tocc.Cognome, Sdc.NumOrdinazionePerTavolo, 
+		Sdc.NumSceltaPerOrdinazione, Sdc.DataOraEspletata
+	from 
+		SceltaDelCliente Sdc join Ordinazione Ord on
+			Sdc.TavoloOccupato = Ord.TavoloOccupato and
+			Sdc.NumOrdinazionePerTavolo = Ord.NumOrdinazionePerTavolo 
+		join TavoloOccupato Tocc on 
+			Tocc.DataOraOccupazione = Ord.TavoloOccupato
+	where 
+		Ord.DataOraRichista is not NULL and 
+		Ord.DataOraCompletamento is NULL and
+		Sdc.DataOraCompletamento is NULL and
+		Tocc.Tavolo = any (
+			select 
+				Tur.Tavolo
+			from 
+				TurnoAssegnato Tas join Turno Tur on 
+					Tas.Turno = Tur.DataOraInizio
+			where 
+				Tas.Cameriere = GetMyUsername() and 
+					IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now()));
+	
+	commit;
+end!
+
+create trigger SoloUnaOrdinazioneInPending
+before insert on Ordinazione for each row
+begin
+	declare counter int;
+
+	select 
+		count(*)
+	from
+		Ordinazione Ord join TavoloOccupato Tocc on 
+			Tocc.DataOraOccupazione = Ord.TavoloOccupato 
+	where 
+		Ord.DataOraRichiesta is NULL and Tocc.NumTavolo = any (
+			select 
+				Tur.Tavolo
+			from 
+				TurnoAssegnato Tas join Turno Tur on 
+					Tas.Turno = Tur.DataOraInizio
+			where 
+				Tas.Cameriere = GetMyUsername() and 
+					IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())) into counter;
+
+	if counter > 0 then
+		signal sqlstate '45000';
+
+	end if;
+end!
+
+create procedure CreaNuovaOrdinazionePerTavolo(in numTavolo smallint)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @tavoloOccupato = (
+		select 
+			DataOraOccupazione
+		from 
+			TavoloOccupato
+		where 
+			numTavolo = any (
+				select 
+					Tur.Tavolo
+				from 
+					TurnoAssegnato Tas join Turno Tur on 
+						Tas.Turno = Tur.DataOraInizio
+				where 
+					Tas.Cameriere = GetMyUsername() and 
+						IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())));
+
+	set @numOrd = (
+		select 
+			count(*)
+		from 
+			Ordinazione Ord join TavoloOccupato Tocc on 
+				Ord.TavoloOccupato = Tocc.DataOraOccupazione
+		where 
+			Tocc.DataOraOccupazione = @tavoloOccupato
+	) + 1;
+
+	insert into Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo)
+		values(@tavoloOccupato, @numOrd);
+
+	commit;
+end!
+
+create procedure ChiudiOrdinazionePerTavolo()
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	update 
+		Ordinazione Ord
+	set 
+		Ord.DataOraOccupazione = now()
+	where 
+		(Ord.TavoloOccupato, Ord.NumOrdinazionePerTavolo) = (
+			select 
+				TavoloOccupato, NumOrdinazionePerTavolo
+			from 
+				Ordinazione Ord join TavoloOccupato Tocc on 
+					Ord.TavoloOccupato = Tocc.DataOraOccupazione join Tavolo Tav on
+						Tav.NumTavolo = Tocc.Tavolo
+			where
+				Ord.DataOraRichiesta is NULL and Tav.NumTavolo = (
+					select 
+						Tur.Tavolo
+					from 
+						TurnoAssegnato Tas join Turno Tur on 
+							Tas.Turno = Tur.DataOraInizio
+					where 
+						Tas.Cameriere = GetMyUsername() and 
+							IsInBetween(Tur.DataOraInizio, Tur.DataOraFine, now())));
+	
+	commit;
 end!
 
 create procedure AggiungiSceltaAllOrdCorrentePerTavolo()
 begin
 end!
 
-create procedure CreaNuovaOrdinazionePerTavolo(in numTavolo smallint)
-begin
-end!
-
-create procedure ChiudiOrdinazionePerTavolo()
+create procedure AggiungiIngredienteAllaScelta()
 begin
 end!
 
@@ -415,20 +578,50 @@ end!
 -- Manager
 
 create procedure OttieniTavoloDisponibile(
-	in numCommensali smallint)
+	in numTavolo smallint,
+	in numCommensali smallint,
+	in nome varchar(20),
+	in cognome varchar(20)
+)
 begin
-	select NumTavolo
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @rightNow = now();
+
+	set @numTavoloTrovato = (select NumTavolo
 		from Tavolo T
 		where T.IsOccupato = false 
 			and T.NumMaxCommensali <= numCommensali 
 			and T.NumTavolo = any (
 				select Tavolo
 				from Turno Tu
-				where IsBetween(Tu.DataOraInizio, Tu.DataOraFine, now()));
-end!
+				where IsBetween(Tu.DataOraInizio, Tu.DataOraFine, @rightNow)));
 
-create procedure RegistraTavolo()
-begin
+	insert into TavoloOccupato(
+		DataOraOccupazione, 
+		Nome, 
+		Cognome, 
+		NumCommensali, 
+		IsServitoAlmenoUnaVolta, 
+		IsPagato, 
+		Tavolo)
+	values(
+		@rightNow,
+		nome,
+		cognome,
+		numCommensali,
+		false,
+		false,
+		@numTavoloTrovato
+	);
+
+	select @numTavoloTrovato;
+
+	commit;
 end!
 
 create procedure RilasciaScontrinoPerTavolo()
@@ -445,11 +638,14 @@ create procedure CreaTurno(
 begin
 	declare exit handler for sqlexception
 	begin
+		rollback;
 		resignal;
 	end;
 
 	insert into Turno(DataOraInizio, DataOraFine)
 		values(dataOraInizio, dataOraFine);
+
+	commit;
 end!
 
 create procedure AssegnaTurno(
@@ -460,11 +656,117 @@ create procedure AssegnaTurno(
 begin
 	declare exit handler for sqlexception
 	begin
+		rollback;
 		resignal;
 	end;
 
 	insert into TurnoAssegnato(Turno, Tavolo, Cameriere) 
 		values(dataOraInizio, numTavolo, usernameCameriere);
+	
+	commit;
+end!
+
+create procedure AggiungiProdottoBar(
+	in nome varchar(20),
+	in costoUnitario float,
+	in isAlcolico boolean
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	insert into ProdottoNelMenu(Nome, CostoUnitario, IsAlcolico, IsBarMenu)
+		values(nome, costoUnitario, isAlcolico, true);
+	
+	commit;
+end!
+
+create procedure AggiungiProdottoPizzeria(
+	in nome varchar(20),
+	in costoUnitario float
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	insert into ProdottoNelMenu(Nome, CostoUnitario, IsAlcolico, IsBarMenu)
+		values(nome, costoUnitario, NULL, false);
+	
+	commit;
+end!
+
+create procedure CreaIngrediente(
+	in nome varchar(20),
+	in numDisponibilitaScorte int,
+	in costoAlKg float
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	insert into Ingrediente(Nome, NumDisponibilitaScorte, CostoAlKg)
+		values(nome, numDisponibilitaScorte, costoAlKg);
+	
+	commit;
+end!
+
+create procedure CreaComposizione(
+	in nomeProdottoMenu varchar(20),
+	in nomeIngrediente varchar(20)
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	insert into ComposizioneDiBase(ProdottoNelMenu, Ingrediente)
+		values(nomeProdottoMenu, nomeIngrediente);
+
+	commit;
+end!
+
+create procedure TogliDalMenu(
+	in nomeProdottoMenu varchar(20)
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	delete from ProdottoNelMenu
+	where nome = nomeProdottoMenu;
+
+	commit;
+end!
+
+create procedure CreaTavolo(
+	in numTavolo smallint,
+	in numMaxCommensali smallint
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	insert into CreaTavolo(NumTavolo, NumMaxCommensali, IsOccupato)
+		values(numTavolo, numMaxCommensali, false);
+	
+	commit;
 end!
 
 create procedure VisualizzaEntrate()
@@ -472,26 +774,6 @@ begin
 end!
 
 create procedure AumentaScorteIngrediente()
-begin
-end!
-
-create procedure DiminuisciScorteIngrediente()
-begin
-end!
-
-create procedure CreaProdotto()
-begin
-end!
-
-create procedure OttieniMenu()
-begin
-end!
-
-create procedure AggiungiAlMenu()
-begin
-end!
-
-create procedure TogliDalMenu()
 begin
 end!
 
