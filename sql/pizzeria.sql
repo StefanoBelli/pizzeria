@@ -146,7 +146,7 @@ create table SceltaDelCliente(
 	NumSceltaPerOrdinazione smallint,
 	DataOraCompletamento timestamp,
 	DataOraEspletata timestamp,
-	ProdottoNelMenu varchar(20) references ProdottoNelMenu(Nome) not null,
+	ProdottoNelMenu varchar(20) not null references ProdottoNelMenu(Nome),
 	LavoratoreCucinaInCarico varchar(10) 
 		references LavoratoreCucina(Lavoratore),
 	foreign key (TavoloOccupato,NumOrdinazionePerTavolo)
@@ -203,6 +203,50 @@ returns varchar(10)
 deterministic
 begin
 	return (substring_index(current_user(), '@', 1));
+end!
+
+create procedure GetMyUserRole()
+begin
+	select 
+		Lavoratore 
+	from 
+		Cameriere 
+	where 
+		Lavoratore = GetMyUsername();
+	
+	-- Cameriere
+	if found_rows() = 1 then
+		select 1 as Role;
+	else
+
+		select 
+			Lavoratore 
+		from 
+			LavoratoreCucina 
+		where 
+			Lavoratore = GetMyUsername() and IsBarman = false;
+
+		-- Pizzaiolo
+		if found_rows() = 1 then
+			select 2 as Role;
+		else
+
+			select
+				Username
+			from
+				Lavoratore
+			where
+				Lavoratore = GetMyUsername() and IsManager = true;
+				
+			-- Manager
+			if found_rows() = 1 then
+				select 3 as Role;
+			end if;
+		end if;
+	end if;
+
+	-- Barman
+	select 4 as Role;
 end!
 
 create procedure CreateUser_Internal(
