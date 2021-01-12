@@ -202,51 +202,40 @@ create function GetMyUsername()
 returns varchar(10)
 deterministic
 begin
-	return (substring_index(current_user(), '@', 1));
+	return (substring_index(user(), '@', 1));
 end!
 
 create procedure GetMyUserRole()
 begin
-	select 
-		Lavoratore 
-	from 
-		Cameriere 
-	where 
-		Lavoratore = GetMyUsername();
+	set @myUsername = (select GetMyUsername());
+	set @isManager = (
+		select Username 
+		from Lavoratore 
+		where Username = @myUsername and IsManager = true);
 	
-	-- Cameriere
 	if found_rows() = 1 then
 		select 1 as Role;
 	else
-
-		select 
-			Lavoratore 
-		from 
-			LavoratoreCucina 
-		where 
-			Lavoratore = GetMyUsername() and IsBarman = false;
-
-		-- Pizzaiolo
+		set @isCameriere = (
+			select Lavoratore
+			from Cameriere 
+			where Lavoratore = @myUsername);
+			
 		if found_rows() = 1 then
 			select 2 as Role;
 		else
-
-			select
-				Username
-			from
-				Lavoratore
-			where
-				Lavoratore = GetMyUsername() and IsManager = true;
+			set @isBarman = (
+				select Lavoratore
+				from LavoratoreCucina 
+				where Lavoratore = @myUsername and IsBarman = true);
 				
-			-- Manager
 			if found_rows() = 1 then
 				select 3 as Role;
+			else
+				select 4 as Role;
 			end if;
 		end if;
 	end if;
-
-	-- Barman
-	select 4 as Role;
 end!
 
 create procedure CreateUser_Internal(
@@ -368,6 +357,7 @@ begin
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaComposizione", true);
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.TogliDalMenu", true);
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaTavolo", true);
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.GetMyUserRole", true);
 	
 	commit;
 end!

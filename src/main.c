@@ -32,6 +32,17 @@
 	exit(EXIT_FAILURE); \
 }
 
+void start_interactive_menu(char* username, MYSQL* conn) {
+	menu_option opts;
+	//sql call GetUserRole
+	
+	while(TRUE) {
+		boolean has_to_go_back = show_menu(&opts, 0, username, conn, "Menu principale");
+		if(has_to_go_back == TRUE)
+			return;
+	}
+}
+
 int main(int argc, char** argv) {
 	char* hostname = DEFAULT_HOSTNAME;
 	int port = DEFAULT_PORT;
@@ -119,10 +130,10 @@ int main(int argc, char** argv) {
 	signal(SIGINT, SIG_IGN);
 	signal(SIGTERM, SIG_IGN);
 
-	start_interactive_menu(conn);
+	start_interactive_menu(username, conn);
 
 	puts("exiting...");
 
-	mysql_close(username, conn);
+	mysql_close(conn);
 	exit(EXIT_SUCCESS);
 }
