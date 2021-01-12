@@ -15,7 +15,7 @@ boolean show_menu(menu_option* opts, int opts_len, char* username, MYSQL* conn, 
 	}
 
 	int go_back_option = i + 1;
-	printf("(%d) Vai indietro / Esci dal programma\n", go_back_option);
+	printf("(%d) Esci dal programma\n", go_back_option);
 	printf("\n[%s]> ", username);
 
 	char *endptr = NULL;
