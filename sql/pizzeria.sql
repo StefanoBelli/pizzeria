@@ -98,15 +98,11 @@ create table TavoloOccupato(
 
 create table Ordinazione(
 	TavoloOccupato timestamp references TavoloOccupato(DataOraOccupazione),
-	NumOrdinazionePerTavolo smallint,
+	NumOrdinazionePerTavolo smallint not null,
 	DataOraRichiesta timestamp,
-	Costo float not null,
+	Costo float unsigned not null default 0,
 	DataOraCompletamento timestamp,
 	primary key(TavoloOccupato, NumOrdinazionePerTavolo),
-
-	check(
-		Costo > 0
-	),
 
 	unique(
 		DataOraRichiesta
@@ -150,7 +146,7 @@ create table SceltaDelCliente(
 	NumSceltaPerOrdinazione smallint,
 	DataOraCompletamento timestamp,
 	DataOraEspletata timestamp,
-	ProdottoNelMenu varchar(20) references ProdottoNelMenu(Nome),
+	ProdottoNelMenu varchar(20) references ProdottoNelMenu(Nome) not null,
 	LavoratoreCucinaInCarico varchar(10) 
 		references LavoratoreCucina(Lavoratore),
 	foreign key (TavoloOccupato,NumOrdinazionePerTavolo)
