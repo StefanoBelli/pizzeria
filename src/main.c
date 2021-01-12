@@ -21,6 +21,7 @@
 #include "mystrerror.h"
 #include "boolean.h"
 #include "interactive.h"
+#include "set_main_menu.h"
 
 #define print_help_exit(first) { \
 	printf("usage: %s [--no-password] [--hostname HOSTNAME] [--port PORT] [--username USERNAME]\n", first); \
@@ -33,14 +34,18 @@
 }
 
 void start_interactive_menu(char* username, MYSQL* conn) {
-	menu_option opts;
-	//sql call GetUserRole
-	
-	while(TRUE) {
-		boolean has_to_go_back = show_menu(&opts, 0, username, conn, "Menu principale");
+	int len;
+	menu_option* opts = set_main_menu_by_user_role(&len, conn);
+
+	boolean loop = TRUE;
+	while(loop) {
+		boolean has_to_go_back = show_menu(opts, 
+			len, username, conn, "Menu principale");
 		if(has_to_go_back == TRUE)
-			return;
+			loop = FALSE;
 	}
+
+	FREE_MENU_OPTION(opts, len);
 }
 
 int main(int argc, char** argv) {
@@ -107,21 +112,22 @@ int main(int argc, char** argv) {
 	}
 
 	printf("Connecting to: %s:%d as %s...\n", hostname, port, username);
-	
-	char* pwd = NULL;
 
+	char pwd[1024];
 	if(use_password == TRUE) {
 		printf("Using password authentication\nEnter password: ");
-		scanf("%m[^\n]", &pwd);
+		fgets(pwd, 1024, stdin);
+		pwd[strlen(pwd) - 1] = 0;
 	} else {
 		puts("Not using password authentication");
 	}
 
-	MYSQL* conn_attempt_outcome = 
-		mysql_real_connect(conn, hostname, username, pwd, USEDB, port, NULL, 0);
+    mysql_optionsv(conn, MYSQL_INIT_COMMAND, 
+		"set autocommit = 0",
+        "set max_sp_recursion_depth = 255");
 
-	if(pwd != NULL)
-		free(pwd);
+    MYSQL* conn_attempt_outcome = 
+		mysql_real_connect(conn, hostname, username, pwd, USEDB, port, NULL, 0);
 
 	if(conn_attempt_outcome == NULL) {
 		mysql_strerror_exit("mysql_real_connect", conn);
@@ -129,7 +135,7 @@ int main(int argc, char** argv) {
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGTERM, SIG_IGN);
-
+	
 	start_interactive_menu(username, conn);
 
 	puts("exiting...");

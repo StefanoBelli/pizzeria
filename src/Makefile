@@ -1,8 +1,8 @@
 CC = gcc
-CFLAGS = $(shell mysql_config --include) -W -Wall -Wextra
+CFLAGS = $(shell mysql_config --include) -W -Wall -Wextra -g
 LIBS = $(shell mysql_config --libs)
 
-SRC = main.c interactive.c
+SRC = main.c interactive.c set_main_menu.c
 
 OUTPUT = pizzeria
 

@@ -224,10 +224,10 @@ begin
 		if found_rows() = 1 then
 			select 2 as Role;
 		else
-			set @isBarman = (
+			set @isLavoratoreCucina = (
 				select Lavoratore
 				from LavoratoreCucina 
-				where Lavoratore = @myUsername and IsBarman = true);
+				where Lavoratore = @myUsername);
 				
 			if found_rows() = 1 then
 				select 3 as Role;

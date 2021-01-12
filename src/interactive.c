@@ -1,9 +1,11 @@
 #include <stdio.h>
-#include <mysql.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include "interactive.h"
 
-boolean show_menu(const menu_option* opts, int opts_len, char* username, MYSQL* conn, char* menu_name) {
+boolean show_menu(menu_option* opts, int opts_len, char* username, MYSQL* conn, char* menu_name) {
 	int i;
 
 	printf("\n\n---%s---\n", menu_name);
@@ -16,8 +18,13 @@ boolean show_menu(const menu_option* opts, int opts_len, char* username, MYSQL* 
 	printf("(%d) Vai indietro / Esci dal programma\n", go_back_option);
 	printf("\n[%s]> ", username);
 
-	int opt;
-	scanf("%d", &opt);
+	char *endptr = NULL;
+	char buf[1024] = { 0 };
+	
+	fgets(buf, 1024, stdin);
+	
+	errno = 0;
+	int opt = strtol(buf, &endptr, 10);
 
 	if(opt == go_back_option) {
 		return TRUE;
