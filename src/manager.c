@@ -85,7 +85,7 @@ static void __generic_aggiungi_lavoratore(char *query, size_t query_len,  MYSQL 
 	param_bind[3].buffer = (char *)&dataNascita;
 	param_bind[3].buffer_length = sizeof(dataNascita);
 	param_bind[3].buffer_type = MYSQL_TYPE_DATE;
-	param_bind[3].length = 0;
+	param_bind[3].length = NULL;
 	param_bind[3].is_null = NULL;
 
 	param_bind[4].buffer = (char *)comuneNascita;
@@ -398,7 +398,7 @@ void aggiungi_disp_ingrediente( MYSQL *conn)
 
 	param_bind[1].buffer = (char *)&disponibilitaInt;
 	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
-	param_bind[1].length = 0;
+	param_bind[1].length = NULL;
 	param_bind[1].is_null = NULL;
 
 	if (mysql_stmt_bind_param(stmt, param_bind)) 
@@ -406,9 +406,12 @@ void aggiungi_disp_ingrediente( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt)) 
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
@@ -466,12 +469,12 @@ void aggiungi_ingrediente( MYSQL *conn)
 
 	param_bind[1].buffer = (char *)&disponibilitaInt;
 	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
-	param_bind[1].length = 0;
+	param_bind[1].length = NULL;
 	param_bind[1].is_null = NULL;
 
 	param_bind[2].buffer = (char *)&costoAlKgFloat;
 	param_bind[2].buffer_type = MYSQL_TYPE_FLOAT;
-	param_bind[2].length = 0;
+	param_bind[2].length = NULL;
 	param_bind[2].is_null = NULL;
 
 	if (mysql_stmt_bind_param(stmt, param_bind)) 
@@ -479,9 +482,12 @@ void aggiungi_ingrediente( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt)) 
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
@@ -535,9 +541,12 @@ void togli_dal_menu( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt))
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
@@ -615,8 +624,8 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 	}
 
 	if (mysql_stmt_prepare(stmt,
-						   "call OttieniTavoloDisponibile(?,?,?,?)",
-						   sizeof("call OttieniTavoloDisponibile(?,?,?,?)")))
+						   "call OttieniTavoloDisponibile(?,?,?)",
+						   sizeof("call OttieniTavoloDisponibile(?,?,?)")))
 	{
 		mysql_stmt_strerror_exit("mysql_stmt_prepare", stmt, conn);
 	}
@@ -644,7 +653,7 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 
 	param_bind[2].buffer = (char *)&numCommensaliInt;
 	param_bind[2].buffer_type = MYSQL_TYPE_SHORT;
-	param_bind[2].length = 0;
+	param_bind[2].length = NULL;
 	param_bind[2].is_null = NULL;
 
 	if (mysql_stmt_bind_param(stmt, param_bind)) 
@@ -652,7 +661,8 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt)) 
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
 
 		if (mysql_stmt_close(stmt))
@@ -661,7 +671,9 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 		}
 
 		return;
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
@@ -672,7 +684,7 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 
 	res_bind[0].buffer = (char *)&result;
 	res_bind[0].buffer_type = MYSQL_TYPE_LONG;
-	res_bind[0].length = 0;
+	res_bind[0].length = NULL;
 	res_bind[0].is_null = NULL;
 
 	if (mysql_stmt_bind_result(stmt, res_bind)) 
@@ -761,13 +773,13 @@ void crea_turno( MYSQL *conn)
 	param_bind[0].buffer = (char *)&dataOraInizio;
 	param_bind[0].buffer_length = sizeof(dataOraInizio);
 	param_bind[0].buffer_type = MYSQL_TYPE_TIMESTAMP;
-	param_bind[0].length = 0;
+	param_bind[0].length = NULL;
 	param_bind[0].is_null = NULL;
 
 	param_bind[1].buffer = (char *)&dataOraFine;
 	param_bind[1].buffer_length = sizeof(dataOraFine);
 	param_bind[1].buffer_type = MYSQL_TYPE_TIMESTAMP;
-	param_bind[1].length = 0;
+	param_bind[1].length = NULL;
 	param_bind[1].is_null = NULL;
 
 	if (mysql_stmt_bind_param(stmt, param_bind)) 
@@ -775,9 +787,12 @@ void crea_turno( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt)) 
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
@@ -846,12 +861,12 @@ void aggiungi_tavolo( MYSQL *conn)
 
 	param_bind[0].buffer = (char *)&numTavoloInt;
 	param_bind[0].buffer_type = MYSQL_TYPE_LONG;
-	param_bind[0].length = 0;
+	param_bind[0].length = NULL;
 	param_bind[0].is_null = NULL;
 
 	param_bind[1].buffer = (char *)&numCommensaliInt;
 	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
-	param_bind[1].length = 0;
+	param_bind[1].length = NULL;
 	param_bind[1].is_null = NULL;
 
 	if (mysql_stmt_bind_param(stmt, param_bind)) 
@@ -859,9 +874,12 @@ void aggiungi_tavolo( MYSQL *conn)
 		mysql_stmt_strerror_exit("mysql_stmt_bind_param", stmt, conn);
 	}
 
-	if (mysql_stmt_execute(stmt)) {
+	if (mysql_stmt_execute(stmt)) 
+	{
 		__mysql_stmt_strerror("mysql_stmt_execute", stmt);
-	} else {
+	} 
+	else 
+	{
 		puts("Ok, fatto!");
 	}
 
