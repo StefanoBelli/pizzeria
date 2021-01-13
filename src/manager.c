@@ -213,14 +213,14 @@ void aggiungi_al_menu_bar( MYSQL *conn)
 	char costoUnitario[21] = { 0 };
 	char isAlcolico[10] = { 0 };
 
-	form_entry entries[2] = {
+	form_entry entries[3] = {
 		{"Nome prodotto menu", nome, 32},
 		{"Costo unitario", costoUnitario, 21},
 		{"Alcolico? (si/no)", isAlcolico, 10}
 	};
 
-	compile_form(entries, 2);
-	if (display_form(entries, 2) == FALSE)
+	compile_form(entries, 3);
+	if (display_form(entries, 3) == FALSE)
 	{
 		puts("Operazione annullata.");
 		return;
@@ -261,7 +261,7 @@ void aggiungi_al_menu_bar( MYSQL *conn)
 	param_bind[1].is_null = NULL;
 
 	param_bind[2].buffer = (char *)&isAlcolicoBoolean;
-	param_bind[2].buffer_type = MYSQL_TYPE_BOOLEAN;
+	param_bind[2].buffer_type = MYSQL_TYPE_TINY;
 	param_bind[2].length = NULL;
 	param_bind[2].is_null = NULL;
 
@@ -386,7 +386,6 @@ void aggiungi_disp_ingrediente( MYSQL *conn)
 	// no error checking
 	size_t nome_len = strlen(nome);
 	int disponibilitaInt = atoi(disponibilita);
-	float costoAlKgFloat = atof(costoAlKg);
 
 	MYSQL_BIND param_bind[2];
 	memset(param_bind, 0, sizeof(param_bind));
@@ -398,7 +397,7 @@ void aggiungi_disp_ingrediente( MYSQL *conn)
 	param_bind[0].is_null = NULL;
 
 	param_bind[1].buffer = (char *)&disponibilitaInt;
-	param_bind[1].buffer_type = MYSQL_TYPE_INT;
+	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
 	param_bind[1].length = 0;
 	param_bind[1].is_null = NULL;
 
@@ -466,7 +465,7 @@ void aggiungi_ingrediente( MYSQL *conn)
 	param_bind[0].is_null = NULL;
 
 	param_bind[1].buffer = (char *)&disponibilitaInt;
-	param_bind[1].buffer_type = MYSQL_TYPE_INT;
+	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
 	param_bind[1].length = 0;
 	param_bind[1].is_null = NULL;
 
@@ -644,7 +643,7 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 	param_bind[1].is_null = NULL;
 
 	param_bind[2].buffer = (char *)&numCommensaliInt;
-	param_bind[2].buffer_type = MYSQL_TYPE_SMALLINT;
+	param_bind[2].buffer_type = MYSQL_TYPE_SHORT;
 	param_bind[2].length = 0;
 	param_bind[2].is_null = NULL;
 
@@ -672,13 +671,13 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 	memset(res_bind, 0, sizeof(res_bind));
 
 	res_bind[0].buffer = (char *)&result;
-	res_bind[0].buffer_type = MYSQL_TYPE_INT;
+	res_bind[0].buffer_type = MYSQL_TYPE_LONG;
 	res_bind[0].length = 0;
 	res_bind[0].is_null = NULL;
 
-	if (mysql_stmt_store_result(stmt, res_bind)) 
+	if (mysql_stmt_bind_result(stmt, res_bind)) 
 	{
-		mysql_stmt_strerror_exit("mysql_stmt_store_result", stmt, conn);
+		mysql_stmt_strerror_exit("mysql_stmt_bind_result", stmt, conn);
 	}
 
 	if (mysql_stmt_store_result(stmt))
@@ -689,8 +688,6 @@ void assegna_tavolo_a_cliente( MYSQL *conn)
 	mysql_stmt_fetch(stmt);
 
 	printf("Tavolo correttamente assegnato: %d\n", result);
-
-	mysql_free_result(prepare_meta_result);
 
 	if (mysql_stmt_close(stmt))
 	{
@@ -848,12 +845,12 @@ void aggiungi_tavolo( MYSQL *conn)
 	memset(param_bind, 0, sizeof(param_bind));
 
 	param_bind[0].buffer = (char *)&numTavoloInt;
-	param_bind[0].buffer_type = MYSQL_TYPE_INT;
+	param_bind[0].buffer_type = MYSQL_TYPE_LONG;
 	param_bind[0].length = 0;
 	param_bind[0].is_null = NULL;
 
 	param_bind[1].buffer = (char *)&numCommensaliInt;
-	param_bind[1].buffer_type = MYSQL_TYPE_INT;
+	param_bind[1].buffer_type = MYSQL_TYPE_LONG;
 	param_bind[1].length = 0;
 	param_bind[1].is_null = NULL;
 
