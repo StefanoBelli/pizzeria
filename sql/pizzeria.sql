@@ -358,7 +358,8 @@ begin
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.TogliDalMenu", true);
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.CreaTavolo", true);
 	call GivePrivOnResToUser_Internal(username, "pizzeriadb.GetMyUserRole", true);
-	
+	call GivePrivOnResToUser_Internal(username, "pizzeriadb.OttieniCamerieri", true);
+
 	commit;
 end!
 
@@ -1044,6 +1045,24 @@ begin
 		values(numTavolo, numMaxCommensali, false);
 	
 	commit;
+end!
+
+create procedure OttieniCamerieri() 
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	select 
+		L.Username as Username, 
+		L.Nome as Nome, 
+		L.Cognome as Cognome, 
+		L.ComuneResidenza as ComuneResidenza
+	from
+		Lavoratore as L join Cameriere as C on
+		L.Username = C.Lavoratore;
 end!
 
 create procedure VisualizzaEntrateMensili()
