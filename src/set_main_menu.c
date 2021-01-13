@@ -52,7 +52,7 @@ menu_option* set_main_menu_by_user_role(int *opts_len, MYSQL* conn) {
 		ASSIGN(2, "Contrassegna scontrino come pagato", contrassegna_scontrino_pagato);
 		ASSIGN(3, "Crea turno", crea_turno);
 		ASSIGN(4, "Assegna turno", assegna_turno);
-		ASSIGN(5, "Aggiungi al menu pizzeria", aggiungi_al_menu);
+		ASSIGN(5, "Aggiungi al menu pizzeria", aggiungi_al_menu_pizzeria);
 		ASSIGN(6, "Aggiungi al menu bar", aggiungi_al_menu_bar);
 		ASSIGN(7, "Aggiungi disponibilità ingrediente", aggiungi_disp_ingrediente);
 		ASSIGN(8, "Aggiungi tavolo", aggiungi_tavolo);
