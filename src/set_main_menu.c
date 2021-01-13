@@ -8,13 +8,15 @@
 #include "lavoratore_cucina.h"
 #include "manager.h"
 
+#define MENU(fp) ((option_handler_fpt)fp)
+
 #define ASSIGN(idx, optstr, funptr) { \
 	opts[idx].option = (char*) malloc(sizeof(char) * sizeof(optstr)); \
 	if(opts[idx].option == NULL) { \
 		eprint_exit("malloc"); \
 	} \
 	memcpy(opts[idx].option, optstr, sizeof(optstr)); \
-	opts[idx].handler = funptr; \
+	opts[idx].handler = MENU(funptr); \
 }
 
 #define OPTS_ALLOC(nopt) \

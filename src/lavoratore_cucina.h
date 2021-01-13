@@ -3,9 +3,9 @@
 
 #include <mysql.h>
 
-void visualizza_stato_ordini(char*, MYSQL*);
-void prendi_in_carico_ordine(char*, MYSQL*);
-void espleta_ordine(char*, MYSQL*);
+void visualizza_stato_ordini(MYSQL*);
+void prendi_in_carico_ordine(MYSQL*);
+void espleta_ordine(MYSQL*);
 
 
 #endif

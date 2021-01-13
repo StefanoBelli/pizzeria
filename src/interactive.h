@@ -4,7 +4,7 @@
 #include <mysql.h>
 #include "boolean.h"
 
-typedef void (*option_handler_fpt)(char*, MYSQL*);
+typedef void (*option_handler_fpt)(MYSQL*);
 
 typedef struct {
 	char* option;

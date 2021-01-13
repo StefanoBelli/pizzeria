@@ -33,7 +33,7 @@ boolean show_menu(menu_option* opts, int opts_len, char* username, MYSQL* conn, 
 	if(opt < 1 || opt > go_back_option) {
 		printf("Opzione invalida: %d\n", opt);
 	} else {
-		opts[opt - 1].handler(username, conn);
+		opts[opt - 1].handler(conn);
 	}
 
 	return FALSE;

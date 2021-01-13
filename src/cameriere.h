@@ -3,9 +3,9 @@
 
 #include <mysql.h>
 
-void avvia_prenotazione(char*, MYSQL*);
-void visualizza_stato_tavoli_assegnati(char*, MYSQL*);
-void visualizza_ordini_da_consegnare(char*, MYSQL*);
-void contrassegna_ordine_come_consegnato(char*, MYSQL*);
+void avvia_prenotazione(MYSQL*);
+void visualizza_stato_tavoli_assegnati(MYSQL*);
+void visualizza_ordini_da_consegnare(MYSQL*);
+void contrassegna_ordine_come_consegnato(MYSQL*);
 
 #endif

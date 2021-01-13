@@ -4,7 +4,7 @@
 #include "interactive.h"
 #include "mystrerror.h"
 
-static void __generic_aggiungi_lavoratore(char *query, size_t query_len, char *username, MYSQL *conn)
+static void __generic_aggiungi_lavoratore(char *query, size_t query_len,  MYSQL *conn)
 {
 	char nome[22] = {0};
 	char cognome[22] = {0};
@@ -132,15 +132,15 @@ static void __generic_aggiungi_lavoratore(char *query, size_t query_len, char *u
 	}
 }
 
-void stampa_scontrino(char *username, MYSQL *conn)
+void stampa_scontrino( MYSQL *conn)
 {
 }
 
-void contrassegna_scontrino_pagato(char *username, MYSQL *conn)
+void contrassegna_scontrino_pagato( MYSQL *conn)
 {
 }
 
-void aggiungi_al_menu_pizzeria(char *username, MYSQL *conn)
+void aggiungi_al_menu_pizzeria( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -161,7 +161,7 @@ void aggiungi_al_menu_pizzeria(char *username, MYSQL *conn)
 	}
 }
 
-void aggiungi_al_menu_bar(char *username, MYSQL *conn)
+void aggiungi_al_menu_bar( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -182,7 +182,7 @@ void aggiungi_al_menu_bar(char *username, MYSQL *conn)
 	}
 }
 
-void crea_composizione(char *username, MYSQL *conn)
+void crea_composizione( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -203,7 +203,7 @@ void crea_composizione(char *username, MYSQL *conn)
 	}
 }
 
-void aggiungi_disp_ingrediente(char *username, MYSQL *conn)
+void aggiungi_disp_ingrediente( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -224,7 +224,7 @@ void aggiungi_disp_ingrediente(char *username, MYSQL *conn)
 	}
 }
 
-void aggiungi_ingrediente(char *username, MYSQL *conn)
+void aggiungi_ingrediente( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -245,7 +245,7 @@ void aggiungi_ingrediente(char *username, MYSQL *conn)
 	}
 }
 
-void togli_dal_menu(char *username, MYSQL *conn)
+void togli_dal_menu( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -266,7 +266,7 @@ void togli_dal_menu(char *username, MYSQL *conn)
 	}
 }
 
-void visualizza_entrate_mensili(char *username, MYSQL *conn)
+void visualizza_entrate_mensili( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -287,7 +287,7 @@ void visualizza_entrate_mensili(char *username, MYSQL *conn)
 	}
 }
 
-void visualizza_entrate_giornaliere(char *username, MYSQL *conn)
+void visualizza_entrate_giornaliere( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -308,7 +308,7 @@ void visualizza_entrate_giornaliere(char *username, MYSQL *conn)
 	}
 }
 
-void assegna_tavolo_a_cliente(char *username, MYSQL *conn)
+void assegna_tavolo_a_cliente( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -329,7 +329,7 @@ void assegna_tavolo_a_cliente(char *username, MYSQL *conn)
 	}
 }
 
-void crea_turno(char *username, MYSQL *conn)
+void crea_turno( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -350,7 +350,7 @@ void crea_turno(char *username, MYSQL *conn)
 	}
 }
 
-void assegna_turno(char *username, MYSQL *conn)
+void assegna_turno( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -371,7 +371,7 @@ void assegna_turno(char *username, MYSQL *conn)
 	}
 }
 
-void aggiungi_tavolo(char *username, MYSQL *conn)
+void aggiungi_tavolo( MYSQL *conn)
 {
 	MYSQL_STMT *stmt = mysql_stmt_init(conn);
 	if (stmt == NULL)
@@ -392,38 +392,34 @@ void aggiungi_tavolo(char *username, MYSQL *conn)
 	}
 }
 
-void aggiungi_altro_manager(char *username, MYSQL *conn)
+void aggiungi_altro_manager( MYSQL *conn)
 {
 	__generic_aggiungi_lavoratore(
 		"call CreaManager(?,?,?,?,?,?,?,?)",
 		sizeof("call CreaManager(?,?,?,?,?,?,?,?)"),
-		username,
 		conn);
 }
 
-void aggiungi_cameriere(char *username, MYSQL *conn)
+void aggiungi_cameriere( MYSQL *conn)
 {
 	__generic_aggiungi_lavoratore(
 		"call CreaCameriere(?,?,?,?,?,?,?,?)",
 		sizeof("call CreaCameriere(?,?,?,?,?,?,?,?)"),
-		username,
 		conn);
 }
 
-void aggiungi_pizzaiolo(char *username, MYSQL *conn)
+void aggiungi_pizzaiolo( MYSQL *conn)
 {
 	__generic_aggiungi_lavoratore(
 		"call CreaPizzaiolo(?,?,?,?,?,?,?,?)",
 		sizeof("call CreaPizzaiolo(?,?,?,?,?,?,?,?)"),
-		username,
 		conn);
 }
 
-void aggiungi_barman(char *username, MYSQL *conn)
+void aggiungi_barman( MYSQL *conn)
 {
 	__generic_aggiungi_lavoratore(
 		"call CreaBarman(?,?,?,?,?,?,?,?)",
 		sizeof("call CreaBarman(?,?,?,?,?,?,?,?)"),
-		username,
 		conn);
 }

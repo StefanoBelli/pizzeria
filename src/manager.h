@@ -3,23 +3,23 @@
 
 #include <mysql.h>
 
-void assegna_tavolo_a_cliente(char*, MYSQL*);
-void stampa_scontrino(char*, MYSQL*);
-void contrassegna_scontrino_pagato(char*, MYSQL*);
-void crea_turno(char*, MYSQL*);
-void assegna_turno(char*, MYSQL*);
-void aggiungi_al_menu_pizzeria(char*, MYSQL*);
-void aggiungi_al_menu_bar(char*, MYSQL*);
-void aggiungi_ingrediente(char*, MYSQL*);
-void aggiungi_disp_ingrediente(char*, MYSQL*);
-void aggiungi_altro_manager(char*, MYSQL*);
-void aggiungi_cameriere(char*, MYSQL*);
-void aggiungi_pizzaiolo(char*, MYSQL*);
-void aggiungi_barman(char*, MYSQL*);
-void visualizza_entrate_mensili(char*, MYSQL*);
-void visualizza_entrate_giornaliere(char*, MYSQL*);
-void aggiungi_tavolo(char*, MYSQL*);
-void togli_dal_menu(char*, MYSQL*);
-void crea_composizione(char*, MYSQL*);
+void assegna_tavolo_a_cliente( MYSQL*);
+void stampa_scontrino( MYSQL*);
+void contrassegna_scontrino_pagato( MYSQL*);
+void crea_turno( MYSQL*);
+void assegna_turno( MYSQL*);
+void aggiungi_al_menu_pizzeria( MYSQL*);
+void aggiungi_al_menu_bar( MYSQL*);
+void aggiungi_ingrediente( MYSQL*);
+void aggiungi_disp_ingrediente( MYSQL*);
+void aggiungi_altro_manager( MYSQL*);
+void aggiungi_cameriere( MYSQL*);
+void aggiungi_pizzaiolo( MYSQL*);
+void aggiungi_barman( MYSQL*);
+void visualizza_entrate_mensili( MYSQL*);
+void visualizza_entrate_giornaliere( MYSQL*);
+void aggiungi_tavolo( MYSQL*);
+void togli_dal_menu( MYSQL*);
+void crea_composizione( MYSQL*);
 
 #endif
