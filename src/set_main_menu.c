@@ -4,6 +4,9 @@
 
 #include "set_main_menu.h"
 #include "mystrerror.h"
+#include "cameriere.h"
+#include "lavoratore_cucina.h"
+#include "manager.h"
 
 #define ASSIGN(idx, optstr, funptr) { \
 	opts[idx].option = (char*) malloc(sizeof(char) * sizeof(optstr)); \
@@ -42,33 +45,33 @@ menu_option* set_main_menu_by_user_role(int *opts_len, MYSQL* conn) {
 	if(val == 1) {
 		OPTS_ALLOC(14);
 
-		ASSIGN(0, "Assegna un tavolo a cliente", NULL);
-		ASSIGN(1, "Stampa scontrino", NULL);
-		ASSIGN(2, "Contrassegna scontrino come pagato", NULL);
-		ASSIGN(3, "Crea turno", NULL);
-		ASSIGN(4, "Assegna turno", NULL);
-		ASSIGN(5, "Aggiungi al menu", NULL);
-		ASSIGN(6, "Aggiungi disponibilità ingrediente", NULL);
-		ASSIGN(7, "Aggiungi tavolo", NULL);
-		ASSIGN(8, "Aggiungi un altro manager", NULL);
-		ASSIGN(9, "Aggiungi un cameriere", NULL);
-		ASSIGN(10, "Aggiungi un pizzaiolo", NULL);
-		ASSIGN(11, "Aggiungi un barman", NULL);
-		ASSIGN(12, "Visualizza entrate mensili", NULL);
-		ASSIGN(13, "Visualizza entrate giornaliere", NULL);
+		ASSIGN(0, "Assegna un tavolo a cliente", assegna_tavolo_a_cliente);
+		ASSIGN(1, "Stampa scontrino", stampa_scontrino);
+		ASSIGN(2, "Contrassegna scontrino come pagato", contrassegna_scontrino_pagato);
+		ASSIGN(3, "Crea turno", crea_turno);
+		ASSIGN(4, "Assegna turno", assegna_turno);
+		ASSIGN(5, "Aggiungi al menu", aggiungi_al_menu);
+		ASSIGN(6, "Aggiungi disponibilità ingrediente", aggiungi_disp_ingrediente);
+		ASSIGN(7, "Aggiungi tavolo", aggiungi_tavolo);
+		ASSIGN(8, "Aggiungi un altro manager", aggiungi_altro_manager);
+		ASSIGN(9, "Aggiungi un cameriere", aggiungi_cameriere);
+		ASSIGN(10, "Aggiungi un pizzaiolo", aggiungi_pizzaiolo);
+		ASSIGN(11, "Aggiungi un barman", aggiungi_barman);
+		ASSIGN(12, "Visualizza entrate mensili", visualizza_entrate_mensili);
+		ASSIGN(13, "Visualizza entrate giornaliere", visualizza_entrate_giornaliere);
 	} else if(val == 2){
 		OPTS_ALLOC(4);
 
-		ASSIGN(0, "Prendi ordinazione da un tavolo", NULL);
-		ASSIGN(1, "Visualizza stato tavoli assegnati", NULL);
-		ASSIGN(2, "Visualizza ordini pronti da consegnare", NULL);
-		ASSIGN(3, "Contrassegna un ordine come consegnato", NULL);
+		ASSIGN(0, "Prendi ordinazione da un tavolo", avvia_prenotazione);
+		ASSIGN(1, "Visualizza stato tavoli assegnati", visualizza_stato_tavoli_assegnati);
+		ASSIGN(2, "Visualizza ordini pronti da consegnare", visualizza_ordini_da_consegnare);
+		ASSIGN(3, "Contrassegna un ordine come consegnato", contrassegna_ordine_come_consegnato);
 	} else if(val == 3) {
 		OPTS_ALLOC(3);
 
-		ASSIGN(0, "Visualizza ordini da eseguire", NULL);
-		ASSIGN(1, "Prendi in carico un ordine in particolare", NULL);
-		ASSIGN(2, "Contrassegna l'ordine come espletato", NULL);
+		ASSIGN(0, "Visualizza stato ordini", visualizza_stato_ordini);
+		ASSIGN(1, "Prendi in carico un ordine in particolare", prendi_in_carico_ordine);
+		ASSIGN(2, "Contrassegna l'ordine come espletato", espleta_ordine);
 	}
 	else {
 		myerror("unknown value for GetMyUserRole()!");
