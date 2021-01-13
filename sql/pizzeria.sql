@@ -1047,7 +1047,11 @@ begin
 	commit;
 end!
 
-create procedure VisualizzaEntrate()
+create procedure VisualizzaEntrateMensili()
+begin
+end!
+
+create procedure VisualizzaEntrateGiornaliere()
 begin
 end!
 

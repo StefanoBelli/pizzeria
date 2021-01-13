@@ -45,22 +45,26 @@ menu_option* set_main_menu_by_user_role(int *opts_len, MYSQL* conn) {
 	menu_option* opts;
 
 	if(val == 1) {
-		OPTS_ALLOC(14);
+		OPTS_ALLOC(18);
 
 		ASSIGN(0, "Assegna un tavolo a cliente", assegna_tavolo_a_cliente);
 		ASSIGN(1, "Stampa scontrino", stampa_scontrino);
 		ASSIGN(2, "Contrassegna scontrino come pagato", contrassegna_scontrino_pagato);
 		ASSIGN(3, "Crea turno", crea_turno);
 		ASSIGN(4, "Assegna turno", assegna_turno);
-		ASSIGN(5, "Aggiungi al menu", aggiungi_al_menu);
-		ASSIGN(6, "Aggiungi disponibilità ingrediente", aggiungi_disp_ingrediente);
-		ASSIGN(7, "Aggiungi tavolo", aggiungi_tavolo);
-		ASSIGN(8, "Aggiungi un altro manager", aggiungi_altro_manager);
-		ASSIGN(9, "Aggiungi un cameriere", aggiungi_cameriere);
-		ASSIGN(10, "Aggiungi un pizzaiolo", aggiungi_pizzaiolo);
-		ASSIGN(11, "Aggiungi un barman", aggiungi_barman);
-		ASSIGN(12, "Visualizza entrate mensili", visualizza_entrate_mensili);
-		ASSIGN(13, "Visualizza entrate giornaliere", visualizza_entrate_giornaliere);
+		ASSIGN(5, "Aggiungi al menu pizzeria", aggiungi_al_menu);
+		ASSIGN(6, "Aggiungi al menu bar", aggiungi_al_menu_bar);
+		ASSIGN(7, "Aggiungi disponibilità ingrediente", aggiungi_disp_ingrediente);
+		ASSIGN(8, "Aggiungi tavolo", aggiungi_tavolo);
+		ASSIGN(9, "Aggiungi un altro manager", aggiungi_altro_manager);
+		ASSIGN(10, "Aggiungi un cameriere", aggiungi_cameriere);
+		ASSIGN(11, "Aggiungi un pizzaiolo", aggiungi_pizzaiolo);
+		ASSIGN(12, "Aggiungi un barman", aggiungi_barman);
+		ASSIGN(13, "Visualizza entrate mensili", visualizza_entrate_mensili);
+		ASSIGN(14, "Visualizza entrate giornaliere", visualizza_entrate_giornaliere);
+		ASSIGN(15, "Togli dal menu", togli_dal_menu);
+		ASSIGN(16, "Associa prodotto a ingredienti utilizzati", crea_composizione);
+		ASSIGN(17, "Aggiungi un *nuovo* ingrediente", aggiungi_ingrediente);
 	} else if(val == 2){
 		OPTS_ALLOC(4);
 
