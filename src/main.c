@@ -123,7 +123,6 @@ int main(int argc, char** argv) {
 	}
 
     mysql_optionsv(conn, MYSQL_INIT_COMMAND, 
-		"set autocommit = 0",
         "set max_sp_recursion_depth = 255");
 
     MYSQL* conn_attempt_outcome = 

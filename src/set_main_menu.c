@@ -40,6 +40,8 @@ menu_option* set_main_menu_by_user_role(int *opts_len, MYSQL* conn) {
 	
 	mysql_free_result(result_set);
 
+	mysql_next_result(conn);
+
 	menu_option* opts;
 
 	if(val == 1) {
