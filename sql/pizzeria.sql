@@ -864,10 +864,9 @@ end!
 -- Manager
 
 create procedure OttieniTavoloDisponibile(
-	in numTavolo smallint,
-	in numCommensali smallint,
 	in nome varchar(20),
-	in cognome varchar(20)
+	in cognome varchar(20),
+	in numCommensali smallint
 )
 begin
 	declare exit handler for sqlexception
