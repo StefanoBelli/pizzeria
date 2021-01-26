@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <linux/limits.h>
 
-#include "goodmalloc.h"
 #include "parse_dbms_conn_config.h"
 #include "mysql_utils.h"
+#include "global_config.h"
 
 #ifndef USERS_DIR_DFL
 #define USERS_DIR_DFL "./users"
