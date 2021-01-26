@@ -1,4 +1,113 @@
-int main()  {
+#include <stdio.h>
+#include <string.h>
+#include <signal.h>
+#include <linux/limits.h>
 
-	return 0;
+#include "global_config.h"
+#include "parse_dbms_conn_config.h"
+#include "mysql_utils.h"
+
+#ifndef USERS_DIR_DFL
+#define USERS_DIR_DFL "./users"
+#endif
+
+#define LOGIN_JSON_FILE "login.json"
+#define PIZZAIOLO_JSON_FILE "pizzaiolo.json"
+#define BARMAN_JSON_FILE "barman.json"
+#define CAMERIERE_JSON_FILE "cameriere.json"
+#define MANAGER_JSON_FILE "manager.json"
+
+#define OPT_WITH_ARG(arg, set) \
+	if(strcmp(argv[i], arg) == 0) { \
+		int i_plus_one = i + 1; \
+		if(i_plus_one == argc) { \
+			fprintf(stderr, "errore: %s richiede un argomento\n", arg); \
+			print_help_and_exit(EXIT_FAILURE, "usage corretto"); \
+		} \
+		set = argv[i + 1]; \
+		i = i_plus_one; \
+		continue; \
+	}
+
+#define OPT_HELP_AND_EXIT() \
+	if(strcmp(argv[i], "--help") == 0) { \
+		print_help_and_exit(EXIT_SUCCESS, "help"); \
+	}
+
+void print_help_and_exit(int code, const char* msg) {
+	FILE* f = stdout;
+
+	if(code != EXIT_SUCCESS) {
+		f = stderr;
+	}
+
+	fprintf(f, 
+		"%s\n\t--username <username>\n\t--password <password>\n\t[--users <users_dir>]\n\t[--help]\n", 
+		msg);
+
+	exit(code);
+}
+
+void exit_and_close(int code) {
+	mysql_close(cfg.db_conn);
+	exit(code);
+}
+
+void handler_close_before_exit(int sig) {
+	exit_and_close(EXIT_SUCCESS);
+}
+
+int main(int argc, char** argv)  {
+	cfg.username = NULL;
+
+	char* password = NULL;
+	char* users_dir = USERS_DIR_DFL;
+
+	for(int i = 1; i < argc; ++i) {
+		OPT_HELP_AND_EXIT();
+		OPT_WITH_ARG("--username", cfg.username);
+		OPT_WITH_ARG("--password", password);
+		OPT_WITH_ARG("--users", users_dir);
+		printf("warning -- %s: opzione sconosciuta\n", argv[i]);
+	}
+
+	if(cfg.username == NULL || password == NULL) {
+		print_help_and_exit(EXIT_FAILURE, "username e password devono essere specificati");
+	}
+
+	char json_file_path[PATH_MAX] = { 0 };
+	snprintf(json_file_path, PATH_MAX, "%s/%s", users_dir, LOGIN_JSON_FILE);
+
+	dbms_conn_config dbms_conf;
+	if(parse_dbms_conn_config(json_file_path, &dbms_conf) == FALSE) {
+		printf("impossibile parsare il file json (%s)\n", json_file_path);
+		exit(EXIT_FAILURE);
+	}
+
+	signal(SIGINT, SIG_IGN);
+	signal(SIGTERM, SIG_IGN);
+
+	if((cfg.db_conn = mysql_init(NULL)) == NULL) {
+		puts("impossibile iniziallizzare la libreria mysql (mysql_init)");
+		exit(EXIT_FAILURE);
+	}
+
+	signal(SIGINT, handler_close_before_exit);
+	signal(SIGTERM, handler_close_before_exit);
+
+	printf("tentativo di connessione: %s@%s...\n", 
+		dbms_conf.db_username, dbms_conf.db_hostname);
+
+	if(mysql_real_connect(cfg.db_conn, 
+						dbms_conf.db_hostname, 
+						dbms_conf.db_username, 
+						dbms_conf.db_password, 
+						dbms_conf.db_name, 
+						dbms_conf.db_port, 
+						NULL, 
+						CLIENT_MULTI_RESULTS | CLIENT_MULTI_STATEMENTS) == NULL) {
+		MYSQL_BASIC_PRINTERROR_EXIT("mysql_real_connect");
+	}
+
+	exit_and_close(EXIT_SUCCESS);
 }

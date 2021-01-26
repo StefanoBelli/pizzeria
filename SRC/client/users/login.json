@@ -1,0 +1,7 @@
+{
+	"host": "localhost",
+	"port": 330k,
+	"username": "login",
+	"password": "login",
+	"database": "pizzeriadb"
+}

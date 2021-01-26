@@ -5,9 +5,10 @@
 
 typedef struct {
 	char* username;
-	MYSQL* conn;
+	MYSQL* db_conn;
 } config;
 
 config cfg;
+void exit_and_close(int code);
 
 #endif
