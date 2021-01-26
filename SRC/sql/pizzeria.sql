@@ -93,27 +93,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists EliminaUtente!
-create procedure EliminaUtente(in username varchar(10))
-begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
-	set transaction isolation level read committed;
-
-	start transaction;
-
-	delete from
-		UtenteLavoratore
-	where
-		Username = username;
-
-	commit;
-end!
-
 drop procedure if exists RipristinoPassword!
 create procedure RipristinoPassword(in username varchar(10), in passwd varchar(45))
 begin
@@ -156,5 +135,4 @@ create user 'manager'@'%' identified by 'manager';
 
 grant execute on procedure TentaLogin to 'login';
 grant execute on procedure RegistraUtente to 'manager';
-grant execute on procedure EliminaUtente to 'manager';
 grant execute on procedure RipristinoPassword to 'manager';
