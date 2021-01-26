@@ -79,7 +79,12 @@ mybool parse_dbms_conn_config(const char *path, dbms_conn_config *conf) {
 				strndup(config + t[i + 1].start, t[i + 1].end - t[i + 1].start);
 			i++;
 		} else if (jsoneq(config, &t[i], "port") == 0) {
-			conf->db_port = strtol(config + t[i + 1].start, NULL, 10);
+			char* endptr;
+			conf->db_port = strtol(config + t[i + 1].start, &endptr, 10);
+			if(endptr != config + t[i + 1].end) {
+				puts("(parse_dbms_conn_config) expecting integer");
+				return FALSE;
+			}
 			i++;
 		} else if (jsoneq(config, &t[i], "database") == 0) {
 			conf->db_name =

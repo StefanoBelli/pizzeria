@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <linux/limits.h>
 
+#include "goodmalloc.h"
 #include "global_config.h"
 #include "parse_dbms_conn_config.h"
 #include "mysql_utils.h"
@@ -34,6 +35,8 @@
 		print_help_and_exit(EXIT_SUCCESS, "help"); \
 	}
 
+mybool attempt_login(const char* username, const char* password);
+
 void print_help_and_exit(int code, const char* msg) {
 	FILE* f = stdout;
 
@@ -49,6 +52,7 @@ void print_help_and_exit(int code, const char* msg) {
 }
 
 void exit_and_close(int code) {
+	good_free(cfg.menu_entries);
 	mysql_close(cfg.db_conn);
 	exit(code);
 }
@@ -59,6 +63,8 @@ void handler_close_before_exit(int sig) {
 
 int main(int argc, char** argv)  {
 	cfg.username = NULL;
+	cfg.menu_entries = NULL;
+	cfg.menu_entries_len = 0;
 
 	char* password = NULL;
 	char* users_dir = USERS_DIR_DFL;
@@ -75,12 +81,17 @@ int main(int argc, char** argv)  {
 		print_help_and_exit(EXIT_FAILURE, "username e password devono essere specificati");
 	}
 
-	char json_file_path[PATH_MAX] = { 0 };
-	snprintf(json_file_path, PATH_MAX, "%s/%s", users_dir, LOGIN_JSON_FILE);
+	char json_file_path[PATH_MAX + 2] = { 0 };
+	snprintf(json_file_path, PATH_MAX + 1, "%s/%s", users_dir, LOGIN_JSON_FILE);
 
 	dbms_conn_config dbms_conf;
 	if(parse_dbms_conn_config(json_file_path, &dbms_conf) == FALSE) {
 		printf("impossibile parsare il file json (%s)\n", json_file_path);
+		exit(EXIT_FAILURE);
+	}
+
+	if(dbms_conf.db_port < 0 || dbms_conf.db_port > 65535) {
+		puts("port range invalido (valido: 0 <= port <= 65535)");
 		exit(EXIT_FAILURE);
 	}
 
@@ -95,8 +106,11 @@ int main(int argc, char** argv)  {
 	signal(SIGINT, handler_close_before_exit);
 	signal(SIGTERM, handler_close_before_exit);
 
-	printf("tentativo di connessione: %s@%s...\n", 
-		dbms_conf.db_username, dbms_conf.db_hostname);
+	printf("tentativo di connessione: %s in %s@%s:%d...\n", 
+		dbms_conf.db_name, 
+		dbms_conf.db_username, 
+		dbms_conf.db_hostname, 
+		dbms_conf.db_port);
 
 	if(mysql_real_connect(cfg.db_conn, 
 						dbms_conf.db_hostname, 
@@ -108,6 +122,15 @@ int main(int argc, char** argv)  {
 						CLIENT_MULTI_RESULTS | CLIENT_MULTI_STATEMENTS) == NULL) {
 		MYSQL_BASIC_PRINTERROR_EXIT("mysql_real_connect");
 	}
+
+	if(attempt_login(cfg.username, password) == FALSE) {
+		puts("credenziali per l'accesso al sistema non valide");
+		exit_and_close(EXIT_FAILURE);
+	}
+
+	char message[29] = { 0 };
+	snprintf(message, 28, "Menu principale (%s)", cfg.username);
+	while(show_menu(message, cfg.menu_entries, cfg.menu_entries_len));
 
 	exit_and_close(EXIT_SUCCESS);
 }

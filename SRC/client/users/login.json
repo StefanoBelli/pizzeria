@@ -1,6 +1,6 @@
 {
 	"host": "localhost",
-	"port": 330k,
+	"port": 3306,
 	"username": "login",
 	"password": "login",
 	"database": "pizzeriadb"
