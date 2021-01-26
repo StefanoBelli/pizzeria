@@ -53,13 +53,13 @@ void print_help_and_exit(int code, const char* msg) {
 	exit(code);
 }
 
-void exit_and_close(int code) {
+void close_and_exit(int code) {
 	mysql_close(cfg.db_conn);
 	exit(code);
 }
 
-void handler_close_before_exit(int sig) {
-	exit_and_close(EXIT_SUCCESS);
+void handler_close_before_exit() {
+	close_and_exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char** argv)  {
@@ -101,8 +101,8 @@ int main(int argc, char** argv)  {
 		exit(EXIT_FAILURE);
 	}
 
-	signal(SIGINT, handler_close_before_exit);
-	signal(SIGTERM, handler_close_before_exit);
+	signal(SIGINT, (void (*)(int)) handler_close_before_exit);
+	signal(SIGTERM, (void (*)(int)) handler_close_before_exit);
 
 	printf("tentativo di connessione: %s in %s@%s:%d...\n", 
 		dbms_conf.db_name, 
@@ -123,10 +123,10 @@ int main(int argc, char** argv)  {
 
 	if(attempt_login(cfg.username, password) == FALSE) {
 		puts("credenziali per l'accesso al sistema non valide");
-		exit_and_close(EXIT_FAILURE);
+		close_and_exit(EXIT_FAILURE);
 	}
 
 	while(show_menu());
 
-	exit_and_close(EXIT_SUCCESS);
+	close_and_exit(EXIT_SUCCESS);
 }

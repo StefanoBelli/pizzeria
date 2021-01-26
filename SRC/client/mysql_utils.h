@@ -11,7 +11,7 @@
 #define MYSQL_BASIC_PRINTERROR_EXIT(msg) \
 	{ \
 		MYSQL_BASIC_PRINTERROR(msg); \
-		exit_and_close(EXIT_FAILURE); \
+		close_and_exit(EXIT_FAILURE); \
 	}
 
 #endif

@@ -12,6 +12,6 @@ typedef struct {
 } config;
 
 extern config cfg;
-void exit_and_close(int code);
+void close_and_exit(int code);
 
 #endif
