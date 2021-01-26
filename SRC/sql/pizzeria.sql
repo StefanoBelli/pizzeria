@@ -16,8 +16,128 @@ create table UtenteLavoratore (
 	Ruolo tinyint not null,
 	unique (
 		CF
+	),
+	check (
+		Ruolo in (1,2,3,4)
 	)
 );
+
+delimiter !
+
+drop procedure if exists TentaLogin!
+create procedure TentaLogin(in username varchar(10), in passwd varchar(45), out userRole tinyint)
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	set userRole = 0;
+	
+	start transaction;
+
+	select
+		Ruolo
+	from
+		UtenteLavoratore
+	where
+		Username = username and Passwd = SHA1(passwd)
+	into
+		userRole;
+
+	commit;
+end!
+
+drop procedure if exists RegistraUtente!
+create procedure RegistraUtente(
+	in username varchar(10), 
+	in nome varchar(20),
+	in cognome varchar(20),
+	in comuneResidenza varchar(34),
+	in dataNascita date,
+	in comuneNascita varchar(34),
+	in cf char(16),
+	in passwd varchar(45),
+	in ruolo tinyint)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	insert into
+		UtenteLavoratore(Username, 
+							Nome, 
+							Cognome, 
+							ComuneResidenza, 
+							DataNascita, 
+							ComuneNascita, 
+							CF, 
+							Passwd, 
+							Ruolo)
+	values(
+		username,
+		nome,
+		cognome,
+		comuneResidenza,
+		dataNascita,
+		comuneNascita,
+		cf,
+		SHA1(passwd),
+		ruolo
+	);
+
+	commit;
+end!
+
+drop procedure if exists EliminaUtente!
+create procedure EliminaUtente(in username varchar(10))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	delete from
+		UtenteLavoratore
+	where
+		Username = username;
+
+	commit;
+end!
+
+drop procedure if exists RipristinoPassword!
+create procedure RipristinoPassword(in username varchar(10), in passwd varchar(45))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	update
+		UtenteLavoratore
+	set
+		Passwd = SHA1(passwd)
+	where
+		Username = username;
+	
+	commit;
+end!
+
+delimiter ;
 
 drop user if exists login;
 create user 'login'@'%' identified by 'login';
@@ -33,3 +153,8 @@ create user 'cameriere'@'%' identified by 'cameriere';
 
 drop user if exists manager;
 create user 'manager'@'%' identified by 'manager';
+
+grant execute on procedure TentaLogin to 'login';
+grant execute on procedure RegistraUtente to 'manager';
+grant execute on procedure EliminaUtente to 'manager';
+grant execute on procedure RipristinoPassword to 'manager';

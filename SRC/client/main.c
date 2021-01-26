@@ -121,6 +121,10 @@ int main(int argc, char** argv)  {
 		MYSQL_BASIC_PRINTERROR_EXIT("mysql_real_connect");
 	}
 
+	if(mysql_autocommit(cfg.db_conn, FALSE)) {
+		MYSQL_BASIC_PRINTERROR_EXIT("mysql_autocommit");
+	}
+
 	if(attempt_login(cfg.username, password) == FALSE) {
 		puts("credenziali per l'accesso al sistema non valide");
 		close_and_exit(EXIT_FAILURE);
