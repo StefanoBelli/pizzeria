@@ -1,11 +1,11 @@
 #define MAX_LINE 1024
 
-#include "myutils.h"
-
 #include <stdio.h>
 #include <string.h>
 
+#include "global_config.h"
 #include "goodmalloc.h"
+#include "myutils.h"
 #include "myezcvt.h"
 
 typedef struct {
@@ -32,15 +32,15 @@ static void any_key() {
   getchar();
 }
 
-mybool show_menu(const char* message, const menu_entry* entries,
-                 int entries_len) {
+mybool show_menu() {
   clear();
-  printf("---%s---\n", message);
-  for (int i = 0; i < entries_len; ++i) {
-    printf("(%d) %s\n", i + 1, entries[i].entry);
+  printf("---Menu principale (%s)---\n", cfg.username);
+
+  for (int i = 0; i < cfg.menu_entries_len; ++i) {
+    printf("(%d) %s\n", i + 1, cfg.menu_entries[i].entry);
   }
 
-  int entries_len_plus_one = entries_len + 1;
+  int entries_len_plus_one = cfg.menu_entries_len + 1;
   printf("(%d) Exit application\n", entries_len_plus_one);
 
   int choice;
@@ -65,9 +65,9 @@ mybool show_menu(const char* message, const menu_entry* entries,
   clear();
 
   int choice_minus_one = choice - 1;
-  printf(">>> %s\n", entries[choice_minus_one].entry);
+  printf(">>> %s\n", cfg.menu_entries[choice_minus_one].entry);
 
-  mybool res = entries[choice_minus_one].handler();
+  mybool res = cfg.menu_entries[choice_minus_one].handler();
   if (res == TRUE) {
     puts(">>> OK");
   } else {

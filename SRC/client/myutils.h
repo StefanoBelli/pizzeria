@@ -28,7 +28,7 @@ typedef struct {
 
 #define clear() (printf("\e[1;1H\e[2J"))
 
-mybool show_menu(const char* message, const menu_entry* entries, int entries_len);
+mybool show_menu();
 mybool show_form(const char* message, const form_field* fields, int fields_len);
 mybool date_check(int day, int month, int year);
 

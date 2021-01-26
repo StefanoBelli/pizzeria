@@ -4,7 +4,6 @@
 #include <linux/limits.h>
 
 #include "goodmalloc.h"
-#include "global_config.h"
 #include "parse_dbms_conn_config.h"
 #include "mysql_utils.h"
 
@@ -35,6 +34,8 @@
 		print_help_and_exit(EXIT_SUCCESS, "help"); \
 	}
 
+config cfg;
+
 mybool attempt_login(const char* username, const char* password);
 
 void print_help_and_exit(int code, const char* msg) {
@@ -52,7 +53,6 @@ void print_help_and_exit(int code, const char* msg) {
 }
 
 void exit_and_close(int code) {
-	good_free(cfg.menu_entries);
 	mysql_close(cfg.db_conn);
 	exit(code);
 }
@@ -63,9 +63,6 @@ void handler_close_before_exit(int sig) {
 
 int main(int argc, char** argv)  {
 	cfg.username = NULL;
-	cfg.menu_entries = NULL;
-	cfg.menu_entries_len = 0;
-
 	char* password = NULL;
 	char* users_dir = USERS_DIR_DFL;
 
@@ -128,9 +125,7 @@ int main(int argc, char** argv)  {
 		exit_and_close(EXIT_FAILURE);
 	}
 
-	char message[29] = { 0 };
-	snprintf(message, 28, "Menu principale (%s)", cfg.username);
-	while(show_menu(message, cfg.menu_entries, cfg.menu_entries_len));
+	while(show_menu());
 
 	exit_and_close(EXIT_SUCCESS);
 }

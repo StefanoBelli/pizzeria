@@ -11,7 +11,7 @@ typedef struct {
 	int menu_entries_len;
 } config;
 
-config cfg;
+extern config cfg;
 void exit_and_close(int code);
 
 #endif
