@@ -7,16 +7,7 @@
 #include "parse_dbms_conn_config.h"
 #include "mysql_utils.h"
 #include "global_config.h"
-
-#ifndef USERS_DIR_DFL
-#define USERS_DIR_DFL "./users"
-#endif
-
-#define LOGIN_JSON_FILE "login.json"
-#define PIZZAIOLO_JSON_FILE "pizzaiolo.json"
-#define BARMAN_JSON_FILE "barman.json"
-#define CAMERIERE_JSON_FILE "cameriere.json"
-#define MANAGER_JSON_FILE "manager.json"
+#include "macros.h"
 
 #define OPT_WITH_ARG(arg, set) \
 	if(strcmp(argv[i], arg) == 0) { \
@@ -37,7 +28,7 @@
 
 config cfg;
 
-mybool attempt_login(const char* username, const char* password);
+mybool attempt_login(const char* password, const char* users_dir);
 
 void print_help_and_exit(int code, const char* msg) {
 	FILE* f = stdout;
@@ -125,7 +116,7 @@ int main(int argc, char** argv)  {
 		MYSQL_BASIC_PRINTERROR_EXIT("mysql_autocommit");
 	}
 
-	if(attempt_login(cfg.username, password) == FALSE) {
+	if(attempt_login(password, users_dir) == FALSE) {
 		puts("credenziali per l'accesso al sistema non valide");
 		close_and_exit(EXIT_FAILURE);
 	}

@@ -25,7 +25,7 @@ create table UtenteLavoratore (
 delimiter !
 
 drop procedure if exists TentaLogin!
-create procedure TentaLogin(in username varchar(10), in passwd varchar(45), out userRole tinyint)
+create procedure TentaLogin(in usern varchar(10), in pwd varchar(45), out userRole tinyint)
 begin
 	set transaction read only;
 	set transaction isolation level read uncommitted;
@@ -39,7 +39,7 @@ begin
 	from
 		UtenteLavoratore
 	where
-		Username = username and Passwd = SHA1(passwd)
+		Username = usern and Passwd = SHA1(pwd)
 	into
 		userRole;
 
@@ -136,3 +136,6 @@ create user 'manager'@'%' identified by 'manager';
 grant execute on procedure TentaLogin to 'login';
 grant execute on procedure RegistraUtente to 'manager';
 grant execute on procedure RipristinoPassword to 'manager';
+
+call RegistraUtente("ste","Stefano","Belli", "Cave", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "ste123", 1);
+
