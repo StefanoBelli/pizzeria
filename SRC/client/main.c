@@ -9,6 +9,10 @@
 #include "global_config.h"
 #include "macros.h"
 
+#ifndef USERS_DIR_DFL
+#define USERS_DIR_DFL "./users"
+#endif
+
 #define OPT_WITH_ARG(arg, set) \
 	if(strcmp(argv[i], arg) == 0) { \
 		int i_plus_one = i + 1; \
