@@ -94,7 +94,7 @@ begin
 end!
 
 drop procedure if exists RipristinoPassword!
-create procedure RipristinoPassword(in username varchar(10), in passwd varchar(45))
+create procedure RipristinoPassword(in usern varchar(10), in pwd varchar(45))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -109,9 +109,9 @@ begin
 	update
 		UtenteLavoratore
 	set
-		Passwd = SHA1(passwd)
+		Passwd = SHA1(pwd)
 	where
-		Username = username;
+		Username = usern;
 	
 	commit;
 end!

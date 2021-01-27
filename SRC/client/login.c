@@ -2,18 +2,11 @@
 
 #include "global_config.h"
 #include "mybool.h"
-#include "op.h"
+#include "menu_entries.h"
 #include "mysql_utils.h"
 #include "parse_dbms_conn_config.h"
 #include "macros.h"
-
-typedef enum {
-	ROLE_UNKNOWN, //login fallito
-	ROLE_MANAGER,
-	ROLE_CAMERIERE,
-	ROLE_PIZZAIOLO,
-	ROLE_BARMAN
-} role;
+#include "role.h"
 
 static mybool set_menu_based_on_role(role r) {
 	if(r == ROLE_UNKNOWN)

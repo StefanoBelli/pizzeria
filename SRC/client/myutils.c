@@ -86,9 +86,9 @@ mybool show_menu() {
     return FALSE;                          \
   }
 
-mybool show_form(const char* message, const form_field* fields,
+mybool show_form(const form_field* fields,
                  int fields_len) {
-  printf("---%s---\n", message);
+  puts("---Completa il form---");
 
   for (int i = 0; i < fields_len; ++i) {
     form_field field = fields[i];
@@ -153,4 +153,22 @@ mybool date_check(int day, int month, int year) {
 	}
 
   return FALSE;
+}
+
+role str_to_role(char* role) {
+  for(size_t i = 0; i < strlen(role); ++i) {
+    role[i] = tolower(role[i]);
+  }
+
+  if(strcmp(role, "manager") == 0) {
+    return ROLE_MANAGER;
+  } else if(strcmp(role, "barman") == 0) {
+    return ROLE_BARMAN;
+  } else if(strcmp(role, "pizzaiolo") == 0) {
+    return ROLE_PIZZAIOLO;
+  } else if(strcmp(role, "cameriere") == 0) {
+    return ROLE_CAMERIERE;
+  }
+
+  return ROLE_UNKNOWN;
 }
