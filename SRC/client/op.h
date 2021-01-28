@@ -38,7 +38,16 @@
 #define int_form_field(f, i, n, mi, ma, ob) \
   	__basic_form_field(f, i, n, mi, ma, 0, ob, INTEGER)
 
+#define double_form_field(f, i, n, mi, ma, ob) \
+	__basic_form_field(f, i, n, mi, ma, 0, ob, DOUBLE)
+
+#define mybool_form_field(f, i, n, ob) \
+	__basic_form_field(f, i, n, 1, 3, 0, ob, MYBOOL)
+
 mybool manager_crea_nuovo_utente();
 mybool manager_ripristina_password_utente_esistente();
+mybool manager_aggiungi_nuovo_tavolo();
+mybool manager_aggiungi_nuovo_ingrediente();
+mybool manager_aggiungi_prodotto_del_menu();
 
 #endif

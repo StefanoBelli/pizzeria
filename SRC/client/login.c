@@ -64,9 +64,9 @@ mybool attempt_login(const char* password, const char* users_dir) {
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call TentaLogin(?,?,?)");
 
 	INIT_MYSQL_BIND(params, 3);
-	set_in_param_string(0, cfg.username, params);
-	set_in_param_string(1, password, params);
-	set_in_param_int(2, (int*)&r, MYSQL_TYPE_TINY, params);
+	set_inout_param_string(0, cfg.username, params);
+	set_inout_param_string(1, (char*) password, params);
+	set_inout_param_tinyint(2, (int*)&r, params);
 	bind_param_stmt(stmt, params);
 
 	if(!execute_stmt(stmt)) {
@@ -75,7 +75,7 @@ mybool attempt_login(const char* password, const char* users_dir) {
 	}
 
 	RESET_MYSQL_BIND(params);
-	set_in_param_int(0, (int*)&r, MYSQL_TYPE_TINY, params);
+	set_inout_param_tinyint(0, (int*)&r, params);
 	bind_result_stmt(stmt, params);
 	fetch_stmt(stmt);
 

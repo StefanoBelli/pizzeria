@@ -43,16 +43,18 @@ mybool manager_crea_nuovo_utente() {
 
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call RegistraUtente(?,?,?,?,?,?,?,?,?)");
 
+	INIT_MYSQL_TIME_ONLYDATE(nascita, giornoNascita, meseNascita, annoNascita);
+
 	INIT_MYSQL_BIND(params, 9);
-	set_in_param_string(0, username, params);
-    set_in_param_string(1, nome, params);
-    set_in_param_string(2, cognome, params);
-    set_in_param_string(3, comuneResidenza, params);
-	set_in_param_onlydate(4, giornoNascita, meseNascita, annoNascita, params);
-	set_in_param_string(5, comuneNascita, params);
-	set_in_param_string(6, cf, params);
-	set_in_param_string(7, password, params);
-	set_in_param_int(8, (int*)&r, MYSQL_TYPE_TINY, params);
+	set_inout_param_string(0, username, params);
+    set_inout_param_string(1, nome, params);
+    set_inout_param_string(2, cognome, params);
+    set_inout_param_string(3, comuneResidenza, params);
+	set_inout_param_date(4, &nascita, params);
+	set_inout_param_string(5, comuneNascita, params);
+	set_inout_param_string(6, cf, params);
+	set_inout_param_string(7, password, params);
+	set_inout_param_tinyint(8, (int*)&r, params);
 	bind_param_stmt(stmt, params);
 
 	checked_execute_stmt(stmt);
@@ -73,8 +75,8 @@ mybool manager_ripristina_password_utente_esistente() {
 
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call RipristinoPassword(?,?)");
 	INIT_MYSQL_BIND(params, 2);
-	set_in_param_string(0, username, params);
-	set_in_param_string(1, newpasswd, params);
+	set_inout_param_string(0, username, params);
+	set_inout_param_string(1, newpasswd, params);
 	bind_param_stmt(stmt, params);
 
 	checked_execute_stmt(stmt);
@@ -89,4 +91,89 @@ mybool manager_ripristina_password_utente_esistente() {
 
 	close_everything_stmt(stmt);
 	return is_ok;
+}
+
+mybool manager_aggiungi_nuovo_tavolo() {
+	int numero_tavolo;
+	int max_commensali;
+	
+	form_field fields[2];
+	int_form_field(fields, 0, "Numero del tavolo", 1, 5, &numero_tavolo);
+    int_form_field(fields, 1, "Max commensali", 1, 3, &max_commensali);
+
+	checked_show_form(fields, 2);
+
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call AggiungiNuovoTavolo(?,?)");
+	INIT_MYSQL_BIND(params, 2);
+	set_inout_param_smallint(0, &numero_tavolo, params);
+	set_inout_param_tinyint(1, &max_commensali, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+mybool manager_aggiungi_nuovo_ingrediente() {
+	char nome[21] = { 0 };
+	int disp_iniziale;
+	double costo_al_kg;
+
+	form_field fields[3];
+	string_form_field(fields, 0, "Nome", 1, 20, 20, nome);
+	int_form_field(fields, 1, "Disponibilità iniziale", 1, 19, &disp_iniziale);
+	double_form_field(fields, 2, "Costo al kg", 1, 10, &costo_al_kg);
+
+	checked_show_form(fields, 3);
+
+    MYSQL_STMT *stmt = init_and_prepare_stmt("call AggiungiNuovoIngrediente(?,?,?)");
+    INIT_MYSQL_BIND(params, 3);
+    set_inout_param_string(0, nome, params);
+    set_inout_param_int(1, &disp_iniziale, params);
+	set_inout_param_double(2, &costo_al_kg, params);
+    bind_param_stmt(stmt, params);
+
+    checked_execute_stmt(stmt);
+
+    close_everything_stmt(stmt);
+    return TRUE;
+}
+
+mybool manager_aggiungi_prodotto_del_menu() {
+	char nome[21] = { 0 };
+	double costo_unitario;
+	mybool is_bar_menu;
+	mybool is_alcolico;
+
+	form_field fields[3];
+	string_form_field(fields, 0, "Nome", 1, 20, 20, nome);
+	double_form_field(fields, 1, "Costo unitario", 1, 10, &costo_unitario);
+	mybool_form_field(fields, 2, "Fa parte del menu bar?", &is_bar_menu);
+	checked_show_form(fields, 3);
+
+	if(is_bar_menu) {
+		form_field fields_alcolico[1];
+		mybool_form_field(fields_alcolico, 0, "Alcolico?", &is_alcolico);
+		checked_show_form(fields_alcolico, 1);
+	}
+
+    MYSQL_STMT *stmt = init_and_prepare_stmt("call AggiungiProdottoNelMenu(?,?,?,?)");
+	INIT_MYSQL_BIND(params, 4);
+	set_inout_param_string(0, nome, params);
+	set_inout_param_double(1, &costo_unitario, params);
+	set_inout_param_mybool(2, &is_bar_menu, params);
+
+	if(is_bar_menu) {
+		set_inout_param_mybool(3, &is_alcolico, params);
+	} else {
+		set_in_param_null(3, params);
+	}
+
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	close_everything_stmt(stmt);
+    return TRUE;
 }
