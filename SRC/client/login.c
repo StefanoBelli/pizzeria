@@ -18,14 +18,11 @@ static mybool set_menu_based_on_role(role r) {
     } else if(r == ROLE_CAMERIERE) {
 		cfg.menu_entries = entries_cameriere;
 		cfg.menu_entries_len = ENTRIES_LEN_CAMERIERE;
-    } else if (r == ROLE_BARMAN) {
-		cfg.menu_entries = entries_barman;
-		cfg.menu_entries_len = ENTRIES_LEN_BARMAN;
-    } else if (r == ROLE_PIZZAIOLO) {
-		cfg.menu_entries = entries_pizzaiolo;
-		cfg.menu_entries_len = ENTRIES_LEN_PIZZAIOLO;
+    } else if (r == ROLE_BARMAN || r == ROLE_PIZZAIOLO) {
+		cfg.menu_entries = entries_barman_e_pizzaiolo;
+		cfg.menu_entries_len = ENTRIES_LEN_BARMAN_E_PIZZAIOLO;
     }
-
+	
 	return TRUE;
 }
 
@@ -64,8 +61,8 @@ mybool attempt_login(const char* password, const char* users_dir) {
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call TentaLogin(?,?,?)");
 
 	INIT_MYSQL_BIND(params, 3);
-	set_inout_param_string(0, cfg.username, params);
-	set_inout_param_string(1, (char*) password, params);
+	set_in_param_string(0, cfg.username, params);
+	set_in_param_string(1, (char*) password, params);
 	set_inout_param_tinyint(2, (int*)&r, params);
 	bind_param_stmt(stmt, params);
 
@@ -75,9 +72,12 @@ mybool attempt_login(const char* password, const char* users_dir) {
 	}
 
 	RESET_MYSQL_BIND(params);
-	set_inout_param_tinyint(0, (int*)&r, params);
+	set_inout_param_int(0, (int*)&r, params);
 	bind_result_stmt(stmt, params);
-	fetch_stmt(stmt);
+
+	if(mysql_stmt_fetch(stmt)) {
+		MYSQL_STMT_BASIC_PRINTERROR_EXIT("mysql_stmt_fetch", stmt);
+	}
 
 	close_everything_stmt(stmt);
 	

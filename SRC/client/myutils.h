@@ -33,5 +33,6 @@ mybool show_menu();
 mybool show_form(const form_field* fields, int fields_len);
 mybool date_check(int day, int month, int year);
 role str_to_role(char* role);
+const char* role_to_str(role r);
 
 #endif

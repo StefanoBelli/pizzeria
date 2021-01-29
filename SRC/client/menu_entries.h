@@ -4,9 +4,8 @@
 #include "op.h"
 #include "myutils.h"
 
-#define ENTRIES_LEN_MANAGER 5
-#define ENTRIES_LEN_BARMAN 0
-#define ENTRIES_LEN_PIZZAIOLO 0
+#define ENTRIES_LEN_MANAGER 14
+#define ENTRIES_LEN_BARMAN_E_PIZZAIOLO 0
 #define ENTRIES_LEN_CAMERIERE 0
 
 menu_entry entries_manager[ENTRIES_LEN_MANAGER] = 
@@ -30,15 +29,46 @@ menu_entry entries_manager[ENTRIES_LEN_MANAGER] =
     {
         "Aggiungi prodotto del menu",
         manager_aggiungi_prodotto_del_menu
+    },
+    {
+        "Associa prodotto e ingrediente",
+        manager_associa_prodotto_e_ingrediente
+    },
+    {
+        "Aggiungi nuovo turno",
+        manager_crea_turno
+    },
+    {
+        "Rimuovi un prodotto dal menu",
+        manager_rimuovi_prodotto_del_menu
+    },
+    {
+        "Rimuovi un ingrediente",
+        manager_rimuovi_ingrediente
+    },
+    {
+        "Rimuovi una associazione prodotto e ingrediente",
+        manager_rimuovi_prodotto_e_ingrediente
+    },
+    {
+        "Visualizza turni",
+        manager_visualizza_turni
+    },
+    {
+        "Visualizza utenti registrati",
+        manager_visualizza_utenti
+    },
+    {
+        "Visualizza situazione tavoli",
+        manager_visualizza_tavoli
+    },
+    {
+        "Assegna un turno a cameriere",
+        manager_assegna_turno
     }
 };
 
-menu_entry entries_barman[ENTRIES_LEN_BARMAN] = 
-{
-
-};
-
-menu_entry entries_pizzaiolo[ENTRIES_LEN_PIZZAIOLO] = 
+menu_entry entries_barman_e_pizzaiolo[ENTRIES_LEN_BARMAN_E_PIZZAIOLO] = 
 {
 
 };

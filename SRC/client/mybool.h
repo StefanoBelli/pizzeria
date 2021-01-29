@@ -6,4 +6,6 @@ typedef enum {
 	TRUE
 } mybool;
 
+#define mybool_to_str(x) (x == FALSE ? "false" : "true")
+
 #endif

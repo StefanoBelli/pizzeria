@@ -10,7 +10,7 @@
   }
 
 #define good_malloc(ptr, type, size)                        \
-  if ((ptr = (type*)malloc(size * sizeof(type))) == NULL) { \
+  if ((ptr = (type*)malloc((size) * sizeof(type))) == NULL) { \
     fputs("memory exhausted", stderr);                      \
     exit(EXIT_FAILURE);                                     \
   }

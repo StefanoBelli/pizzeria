@@ -13,6 +13,15 @@ typedef struct {
   int buf_len;
 } line;
 
+static const char* roles[] = 
+{
+  "unknown",
+  "manager",
+  "cameriere",
+  "pizzaiolo",
+  "barman"
+};
+
 static line read_line() {
   line ln;
   good_malloc(ln.buf, char, MAX_LINE + 2);
@@ -171,4 +180,8 @@ role str_to_role(char* role) {
   }
 
   return ROLE_UNKNOWN;
+}
+
+const char* role_to_str(role r) {
+    return roles[(int)r];
 }
