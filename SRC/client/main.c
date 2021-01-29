@@ -50,6 +50,7 @@ void print_help_and_exit(int code, const char* msg) {
 
 void close_and_exit(int code) {
 	mysql_close(cfg.db_conn);
+	mysql_library_end();
 	exit(code);
 }
 
@@ -115,6 +116,8 @@ int main(int argc, char** argv)  {
 						CLIENT_MULTI_RESULTS | CLIENT_MULTI_STATEMENTS) == NULL) {
 		MYSQL_BASIC_PRINTERROR_EXIT("mysql_real_connect");
 	}
+
+	free_dbms_conn_config(dbms_conf);
 
 	if(mysql_autocommit(cfg.db_conn, FALSE)) {
 		MYSQL_BASIC_PRINTERROR_EXIT("mysql_autocommit");

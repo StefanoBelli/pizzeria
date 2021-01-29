@@ -53,10 +53,12 @@ static void reparse_and_change_user(role r, const char* users_dir) {
 							dbms_conf.db_name)) {
         MYSQL_BASIC_PRINTERROR_EXIT("mysql_change_user");
     }
+
+	free_dbms_conn_config(dbms_conf);
 }
 
 mybool attempt_login(const char* password, const char* users_dir) {
-	role r;
+	role r = ROLE_UNKNOWN;
 
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call TentaLogin(?,?,?)");
 

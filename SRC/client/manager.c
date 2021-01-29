@@ -479,7 +479,7 @@ static mybool __manager_assegna_turno_perform(tavolo* ta, MYSQL_TIME* tu, utente
 
 	INIT_MYSQL_BIND(params, 3);
 	set_inout_param_smallint(0, &(ta->num_tavolo), params);
-	set_inout_param_datetime(1, &tu, params);
+	set_inout_param_datetime(1, tu, params);
 	set_in_param_string(2, u->username, params);
 	bind_param_stmt(stmt, params);
 
@@ -496,20 +496,20 @@ static void __manager_assegna_turno_print(tavolo *ta,
 
 	puts("TAVOLI");
 	for(unsigned long long i = 0; i < n_ta; ++i) {
-		printf("%lld) tavolo: %d, max commensali: %d\n", 
+		printf("%llu) tavolo: %d, max commensali: %d\n", 
 			i + 1, ta[i].num_tavolo, ta[i].num_max_commensali);
 	}
 
 	puts("\nUTENTI");
 	for(unsigned long long i = 0; i < n_u; ++i) {
-		printf("%lld) %s %s (%s)\n", 
+		printf("%llu) %s %s (%s)\n", 
 			i + 1, u[i].nome, u[i].cognome, 
 			role_to_str(u[i].ruolo));
 	}
 
 	puts("\nTURNI");
 	for(unsigned long long i = 0; i < n_tu; ++i) {
-		printf("%lld) inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n", 
+		printf("%llu) inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n", 
 			i + 1, tu_inizio[i].day, tu_inizio[i].month, 
 			tu_inizio[i].year, tu_inizio[i].hour, tu_inizio[i].minute,
 			tu_fine[i].day, tu_fine[i].month, tu_fine[i].year, 

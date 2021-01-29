@@ -60,7 +60,7 @@ mybool manager_crea_turno();
 mybool manager_rimuovi_prodotto_del_menu();
 mybool manager_rimuovi_ingrediente();
 mybool manager_rimuovi_prodotto_e_ingrediente();
-mybool manager_assegna_turno(); //TODO -- FARE
+mybool manager_assegna_turno();
 mybool manager_visualizza_turni();
 mybool manager_visualizza_utenti();
 mybool manager_visualizza_tavoli();
