@@ -55,22 +55,31 @@
 	name.minute = min; \
 	name.second = s
 
-#define __basic_set_inout_param_type(par, idx, ptr, buflen, buftype) \
-	par[idx].buffer = ptr;                                             \
-	par[idx].buffer_type = buftype;                                    \
-	par[idx].buffer_length = buflen
+#define __basic_set_inout_maybe_null_param_type(par, idx, ptr, buflen, buftype, isnullptr) \
+	par[idx].buffer = ptr; \
+	par[idx].buffer_type = buftype; \
+	par[idx].buffer_length = buflen; \
+	par[idx].is_null = isnullptr
 
-#define __basic_set_inout_param_int_or_date(idx, buf, subtype, params) \
-	__basic_set_inout_param_type(params, idx, buf, sizeof(*buf), subtype)
+#define __basic_set_inout_param_type(par, idx, ptr, buflen, buftype) \
+	__basic_set_inout_maybe_null_param_type(par, idx, ptr, buflen, buftype, NULL)
+
+#define __basic_set_inout_param_int_or_date(idx, buf, subtype, params, isnullptr) \
+	__basic_set_inout_maybe_null_param_type(params, idx, buf, sizeof(*buf), subtype, isnullptr)
 
 #define __basic_mysql_stmt_bind(fun, stmt, params) \
 	if (fun(stmt, params)) { \
 		MYSQL_STMT_BASIC_PRINTERROR_EXIT(#fun, stmt); \
 	}
 
-MYSQL_STMT* init_and_prepare_stmt(const char* query);
+MYSQL_STMT *init_and_prepare_stmt(const char* query);
 mybool execute_stmt(MYSQL_STMT* stmt);
 void close_everything_stmt(MYSQL_STMT* stmt);
+
+#define next_result_stmt(stmt) \
+    if (mysql_stmt_next_result(stmt) > 0) { \
+		MYSQL_STMT_BASIC_PRINTERROR_EXIT("mysql_stmt_next_result", stmt); \
+	}
 
 /* inout params */
 
@@ -80,14 +89,21 @@ void close_everything_stmt(MYSQL_STMT* stmt);
 #define set_out_param_string(idx, buf, params) \
   	__basic_set_inout_param_type(params, idx, buf, sizeof(buf), MYSQL_TYPE_VAR_STRING)
 
+#define set_out_param_maybe_null_string(idx, buf, isnullptr, params) \
+	__basic_set_inout_maybe_null_param_type(params, idx, buf, sizeof(buf), \
+											MYSQL_TYPE_VAR_STRING, isnullptr)
+
 #define set_inout_param_int(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_LONG, params)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_LONG, params, NULL)
 
 #define set_inout_param_tinyint(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_TINY, params)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_TINY, params, NULL)
 
 #define set_inout_param_smallint(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_SHORT, params)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_SHORT, params, NULL)
+
+#define set_out_param_maybe_null_int(idx, buf, isnullptr, params) \
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_LONG, params, isnullptr)
 
 #define set_inout_param_double(idx, buf, params) \
 	__basic_set_inout_param_type(params, idx, buf, 0, MYSQL_TYPE_DOUBLE)
@@ -99,10 +115,10 @@ void close_everything_stmt(MYSQL_STMT* stmt);
 	params[idx].is_null_value = TRUE
 
 #define set_inout_param_date(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_DATE, params)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_DATE, params, NULL)
 
 #define set_inout_param_datetime(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_TIMESTAMP, params)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_TIMESTAMP, params, NULL)
 
 /* bind */
 
@@ -129,7 +145,6 @@ void close_everything_stmt(MYSQL_STMT* stmt);
 #define end_fetch_stmt() \
   		} \
   		if (stmt_fetch_error != MYSQL_NO_DATA) { \
-		  	printf("%d\n", stmt_fetch_error == MYSQL_DATA_TRUNCATED); \
     		MYSQL_STMT_BASIC_PRINTERROR_EXIT("mysql_stmt_fetch", stmt); \
         } \
 	}

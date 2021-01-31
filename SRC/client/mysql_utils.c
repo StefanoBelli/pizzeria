@@ -32,7 +32,7 @@ void close_everything_stmt(MYSQL_STMT* stmt) {
 	while(!(code=mysql_stmt_next_result(stmt))) {}
 
 	if(code > 0) {
-		MYSQL_BASIC_PRINTERROR_EXIT("mysql_stmt_next_result");
+		MYSQL_STMT_BASIC_PRINTERROR_EXIT("mysql_stmt_next_result", stmt);
 	}
 	//tutti i result set sono stati consumati
 

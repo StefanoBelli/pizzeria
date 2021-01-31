@@ -64,9 +64,18 @@ mybool manager_assegna_turno();
 mybool manager_visualizza_turni();
 mybool manager_visualizza_utenti();
 mybool manager_visualizza_tavoli();
-
-//Visualizza menu
-//Visualizza situazione ingredienti
-//Visualizza prodotti e ingredienti
+mybool manager_visualizza_turni_assegnati();
+mybool manager_visualizza_turno_attuale();
+mybool manager_visualizza_menu();
+mybool manager_visualizza_situazione_ingredienti();
+mybool manager_visualizza_assoc_prodotti_ingredienti();
+mybool manager_inc_disp_ingrediente();
+mybool manager_visualizza_entrate_giornaliere();
+mybool manager_visualizza_entrate_mensili();
+mybool manager_visualizza_scontrini_non_pagati();
+mybool manager_contrassegna_scontrino_pagato();
+mybool manager_assegna_tavolo_a_cliente(); // TODO
+mybool manager_visualizza_tavoli_poss_stampare_scontrino(); // TODO
+mybool manager_stampa_scontrino_tavolo_occupato(); // TODO
 
 #endif

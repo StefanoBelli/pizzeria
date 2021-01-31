@@ -93,15 +93,62 @@ create table TurnoAssegnato (
 	)
 );
 
+drop table if exists TavoloOccupato;
+create table TavoloOccupato (
+	DataOraOccupazione timestamp primary key,
+	Nome varchar(20) not null,
+	Cognome varchar(20) not null,
+	NumCommensali tinyint unsigned not null,
+	IsServitoAlmenoUnaVolta boolean not null default false,
+	Tavolo smallint not null references Tavolo(NumTavolo)
+);
+
+drop table if exists Scontrino;
+create table Scontrino (
+	IdFiscale int auto_increment primary key,
+	DataOraEmissione timestamp not null,
+	CostoTotale float not null,
+	IsPagato boolean not null default false,
+	TavoloOccupato timestamp not null
+		 references TavoloOccupato(DataOraOccupazione),
+	check(
+		CostoTotale > 0
+	),
+	unique(
+		DataOraEmissione
+	)
+);
+
 delimiter !
 
 drop trigger if exists TurnoCheckDataOraInizio_Insert!
 create trigger TurnoCheckDataOraInizio_Insert
 before insert on Turno for each row
-begin
+begin	
 	if NEW.DataOraInizio < now() then
 		signal sqlstate '45001' 
 			set message_text = "Impossibile creare turno per il passato";
+	end if;
+end!
+
+drop trigger if exists TurnoCheckOverlap_Insert!
+create trigger TurnoCheckOverlap_Insert
+before insert on Turno for each row
+begin
+	declare overlapCount int;
+
+	select
+		count(*)
+	from
+		Turno
+	where
+		DataOraInizio <= NEW.DataOraFine and DataOraFine >= NEW.DataOraInizio
+	into
+		overlapCount;
+
+	if overlapCount > 0 then
+		signal sqlstate '45003'
+			set message_text = "Overlap dei turni";
 	end if;
 end!
 
@@ -123,6 +170,47 @@ begin
 	if newUserRole <> 2 then
 		signal sqlstate '45002'
 			set message_text = "Impossibile assegnare un turno/tavolo a un non-cameriere";
+	end if;
+end!
+
+drop trigger if exists ScontrinoCheckServizio_Insert!
+create trigger ScontrinoCheckServizio_Insert
+before insert on Scontrino for each row
+begin
+	declare isServito boolean;
+
+	select
+		IsServitoAlmenoUnaVolta
+	from
+		TavoloOccupato T
+	where
+		T.DataOraOccupazione = NEW.TavoloOccupato
+	into
+		isServito;
+
+	if isServito = false then
+		signal sqlstate '45004'
+			set message_text = "il tavolo deve essere servito almeno una volta";
+	end if;
+end!
+
+drop trigger if exists ScontrinoCheckPagato_AfterUpdate!
+create trigger ScontrinoCheckPagato_AfterUpdate
+after update on Scontrino for each row
+begin
+	if NEW.IsPagato = true then
+		update
+			Tavolo
+		set
+			IsOccupato = false
+		where
+			NumTavolo = (
+				select 
+					NumTavolo
+				from
+					Scontrino S join TavoloOccupato O
+				where
+					O.DataOraOccupazione = NEW.TavoloOccupato);
 	end if;
 end!
 
@@ -327,6 +415,12 @@ end!
 drop procedure if exists RimuoviProdottoNelMenu!
 create procedure RimuoviProdottoNelMenu(in nomeProd varchar(20))
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
 	set transaction isolation level read uncommitted;
 
 	start transaction;
@@ -342,6 +436,12 @@ end!
 drop procedure if exists RimuoviIngrediente!
 create procedure RimuoviIngrediente(in nomeIng varchar(20))
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+	
 	set transaction isolation level read uncommitted;
 
 	start transaction;
@@ -357,6 +457,12 @@ end!
 drop procedure if exists RimuoviAssocProdottoEIngrediente!
 create procedure RimuoviAssocProdottoEIngrediente(in nomeProd varchar(20), in nomeIng varchar(20))
 begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+	
 	set transaction isolation level read uncommitted;
 
 	start transaction;
@@ -382,7 +488,7 @@ begin
 	from
 		Turno
 	where
-		now() < DataOraFine;
+		now() <= DataOraFine;
 
 	commit;
 end!
@@ -410,15 +516,15 @@ begin
 	set transaction read only;
 	set transaction isolation level read uncommitted;
 
-	start transaction;
-
 	set @current_time = now();
+
+	start transaction;
 
 	select
 		NumTavolo, MaxCommensali, IsOccupato, exists (
 				select
 					*
-				from 
+				from
 					TurnoAssegnato Ta join Turno Tu on 
 						Ta.Turno = Tu.DataOraInizio
 				where 
@@ -427,6 +533,51 @@ begin
 						@current_time <= Tu.DataOraFine)
 	from
 		Tavolo;
+
+	commit;
+end!
+
+drop procedure if exists OttieniTurniAssegnati!
+create procedure OttieniTurniAssegnati()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	select
+		Tu.DataOraInizio, Tu.DataOraFine, Ta.Tavolo, U.Nome, U.Cognome, U.Username
+	from
+		(TurnoAssegnato Ta join Turno Tu on
+			Ta.Turno = Tu.DataOraInizio) join UtenteLavoratore U on
+				 Ta.Cameriere = U.Username
+	where
+		now() <= Tu.DataOraFine
+	order by
+		Tu.DataOraInizio;
+
+	commit;
+end!
+
+drop procedure if exists OttieniTurnoAttuale!
+create procedure OttieniTurnoAttuale()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	set @current_time = now();
+
+	start transaction;
+
+	select
+		Tu.DataOraInizio, Tu.DataOraFine, Ta.Tavolo, U.Nome, U.Cognome, U.Username
+	from
+		(TurnoAssegnato Ta right join Turno Tu on
+			Ta.Turno = Tu.DataOraInizio) left join UtenteLavoratore U on
+				 Ta.Cameriere = U.Username
+	where
+		Tu.DataOraInizio <= @current_time and
+			@current_time <= Tu.DataOraFine;
 
 	commit;
 end!
@@ -454,6 +605,263 @@ begin
 
 	commit;
 end!
+
+drop procedure if exists OttieniMenu!
+create procedure OttieniMenu()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	select
+		Nome, IsBarMenu, IsAlcolico, CostoUnitario
+	from
+		ProdottoNelMenu
+	order by
+		IsBarMenu, Nome asc;
+
+	commit;
+end!
+
+drop procedure if exists OttieniComposizioneProdotto!
+create procedure OttieniComposizioneProdotto()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	select
+		NomeProdotto, NomeIngrediente
+	from
+		ComposizioneProdotto;
+
+	commit;
+end!
+
+drop procedure if exists OttieniIngredienti!
+create procedure OttieniIngredienti()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	select
+		Nome, NumDisponibilitaScorte, CostoAlKg
+	from
+		Ingrediente;
+
+	commit;
+end!
+
+drop procedure if exists IncDispIngrediente!
+create procedure IncDispIngrediente(in nomeIng varchar(20), in incBy int)
+begin
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	update
+		Ingrediente
+	set
+		NumDisponibilitaScorte = NumDisponibilitaScorte + incBy
+	where
+		Nome = nomeIng;
+
+	commit;
+end!
+
+drop function if exists InTimeRange!
+create function InTimeRange(monthly boolean, tm timestamp)
+returns boolean deterministic
+begin
+	set @current_time = now();
+	set @by_month = YEAR(@current_time) = YEAR(tm) and
+			MONTH(@current_time) = MONTH(tm);
+
+	if monthly then
+		return @by_month;
+	end if;
+
+	return @by_month and DAY(@current_time) = DAY(tm);
+end!
+
+drop procedure if exists OttieniEntrate!
+create procedure OttieniEntrate(in mensili boolean)
+begin
+	set transaction read only;
+	set transaction isolation level repeatable read;
+
+	start transaction;
+
+	select
+		count(*) as NumScontrini,
+		sum(CostoTotale) as IncassoTotale
+	from
+		Scontrino
+	where
+		IsPagato and InTimeRange(mensili, DataOraEmissione);
+
+	select
+		IdFiscale, DataOraEmissione, CostoTotale
+	from
+		Scontrino
+	where
+		IsPagato and InTimeRange(mensili, DataOraEmissione);
+
+	commit;
+end!
+
+drop procedure if exists OttieniScontriniNonPagati!
+create procedure OttieniScontriniNonPagati()
+begin
+	set transaction read only;
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	select
+		IdFiscale, DataOraEmissione, CostoTotale
+	from
+		Scontrino
+	where
+		IsPagato = false;
+
+	commit;
+end!
+
+drop procedure if exists ContrassegnaScontinoPagato!
+create procedure ContrassegnaScontrinoPagato(in idFisc int)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read uncommitted;
+
+	start transaction;
+
+	update 
+		Scontrino
+	set
+		IsPagato = true
+	where
+		IdFiscale = idFisc and IsPagato = false;
+
+	commit;
+end!
+
+drop procedure if exists AssegnaTavoloACliente!
+create procedure AssegnaTavoloACliente(
+		in cliNome varchar(20), 
+		in cliCognome varchar(20), 
+		in numComm tinyint)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set @current_time = now();
+
+	set transaction isolation level repeatable read;
+	start transaction;
+
+	set @numTavoloAdatto = (
+		select
+			NumTavolo
+		from
+			(Tavolo T join TurnoAssegnato Ta on
+				T.NumTavolo = Ta.Tavolo) join Turno Tu on 
+					Ta.Turno = Tu.DataOraInizio
+		where
+			T.IsOccupato = false and 
+			Tu.DataOraInizio <= @current_time and 
+			@current_time <= Tu.DataOraFine and
+			numComm <= T.MaxCommensali
+		limit 1);
+
+	if @numTavoloAdatto is NULL then
+		signal sqlstate '45005' 
+			set message_text = "Nessun tavolo disponibile per l'assegnazione";
+	end if;
+
+	insert into 
+		TavoloOccupato(DataOraOccupazione, Nome, Cognome, NumCommensali, Tavolo)
+	values
+		(now(), cliNome, cliCognome, numComm, @numTavoloAdatto);
+
+	update
+		Tavolo
+	set
+		IsOccupato = true
+	where
+		Tavolo = @numTavoloAdatto;
+
+	select @numTavoloAdatto as NumTavolo;
+
+	commit;
+end!
+
+-- TODO -- TODO -- xxx xxx xxx 
+
+drop procedure if exists OttieniTavoliScontrinoStampabile!
+create procedure OttieniTavoliScontrinoStampabile()
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction read only;
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	commit;
+end!
+
+drop procedure if exists StampaScontrino!
+create procedure StampaScontrino(in dataOraOcc timestamp)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	set @scontrino = (
+				select
+					* 
+				from
+					Scontrino
+				where
+					TavoloOccupato = dataOraOc);
+
+	if @scontrino is not NULL then
+		signal sqlstate '45006' 
+			set message_text = "Scontrino già stampato";
+	end if;
+
+	insert into 
+		Scontrino(DataOraEmisione, CostoTotale, TavoloOccupato)
+	values
+		(now(), 0, dataOraOcc);
+	
+	commit;
+end!
+
+-- TODO -- TODO -- xxx xxx xxx 
 
 delimiter ;
 
@@ -488,6 +896,18 @@ grant execute on procedure OttieniTurni to 'manager';
 grant execute on procedure OttieniUtenti to 'manager';
 grant execute on procedure OttieniTavoli to 'manager';
 grant execute on procedure AssegnaTurno to 'manager';
+grant execute on procedure OttieniTurnoAttuale to 'manager';
+grant execute on procedure OttieniTurniAssegnati to 'manager';
+grant execute on procedure OttieniMenu to 'manager';
+grant execute on procedure OttieniComposizioneProdotto to 'manager';
+grant execute on procedure OttieniIngredienti to 'manager';
+grant execute on procedure IncDispIngrediente to 'manager';
+grant execute on procedure OttieniEntrate to 'manager';
+grant execute on procedure OttieniScontriniNonPagati to 'manager';
+grant execute on procedure ContrassegnaScontrinoPagato to 'manager';
+grant execute on procedure AssegnaTavoloACliente to 'manager';
+grant execute on procedure OttieniTavoliScontrinoStampabile to 'manager';
+grant execute on procedure StampaScontrino to 'manager';
 
 call RegistraUtente("ste","Stefano","Belli", "Cave", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "ste123", 1);
 
