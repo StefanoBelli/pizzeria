@@ -68,8 +68,8 @@ create table ComposizioneProdotto(
 
 drop table if exists Turno;
 create table Turno (
-	DataOraInizio timestamp primary key,
-	DataOraFine timestamp not null,
+	DataOraInizio datetime primary key,
+	DataOraFine datetime not null,
 	check(
 		DataOraFine > DataOraInizio
 	)
@@ -77,7 +77,7 @@ create table Turno (
 
 drop table if exists TurnoAssegnato;
 create table TurnoAssegnato (
-	Turno timestamp 
+	Turno datetime 
 		references Turno(DataOraInizio)
 		on delete no action,
 	Tavolo smallint
@@ -95,7 +95,7 @@ create table TurnoAssegnato (
 
 drop table if exists TavoloOccupato;
 create table TavoloOccupato (
-	DataOraOccupazione timestamp primary key,
+	DataOraOccupazione datetime primary key,
 	Nome varchar(20) not null,
 	Cognome varchar(20) not null,
 	NumCommensali tinyint unsigned not null,
@@ -106,10 +106,10 @@ create table TavoloOccupato (
 drop table if exists Scontrino;
 create table Scontrino (
 	IdFiscale int auto_increment primary key,
-	DataOraEmissione timestamp not null,
+	DataOraEmissione datetime not null,
 	CostoTotale float not null,
 	IsPagato boolean not null default false,
-	TavoloOccupato timestamp not null
+	TavoloOccupato datetime not null
 		 references TavoloOccupato(DataOraOccupazione),
 	check(
 		CostoTotale > 0
@@ -392,7 +392,7 @@ begin
 end!
 
 drop procedure if exists AggiungiTurno!
-create procedure AggiungiTurno(in inizio timestamp, in fine timestamp)
+create procedure AggiungiTurno(in inizio datetime, in fine datetime)
 begin
 	declare exit handler for sqlexception
 	begin
@@ -585,7 +585,7 @@ end!
 drop procedure if exists AssegnaTurno!
 create procedure AssegnaTurno(
 		in numTavolo smallint,
-		in dataOraInizioTurno timestamp, 
+		in dataOraInizioTurno datetime, 
 		in cameriereUsername varchar(10))
 begin
 	declare exit handler for sqlexception
@@ -674,7 +674,7 @@ begin
 end!
 
 drop function if exists InTimeRange!
-create function InTimeRange(monthly boolean, tm timestamp)
+create function InTimeRange(monthly boolean, tm datetime)
 returns boolean deterministic
 begin
 	set @current_time = now();
@@ -801,7 +801,7 @@ begin
 	set
 		IsOccupato = true
 	where
-		Tavolo = @numTavoloAdatto;
+		NumTavolo = @numTavoloAdatto;
 
 	select @numTavoloAdatto as NumTavolo;
 
@@ -828,7 +828,7 @@ begin
 end!
 
 drop procedure if exists StampaScontrino!
-create procedure StampaScontrino(in dataOraOcc timestamp)
+create procedure StampaScontrino(in dataOraOcc datetime)
 begin
 	declare exit handler for sqlexception
 	begin
@@ -846,7 +846,7 @@ begin
 				from
 					Scontrino
 				where
-					TavoloOccupato = dataOraOc);
+					TavoloOccupato = dataOraOcc);
 
 	if @scontrino is not NULL then
 		signal sqlstate '45006' 

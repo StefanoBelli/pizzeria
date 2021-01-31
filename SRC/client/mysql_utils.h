@@ -118,7 +118,7 @@ void close_everything_stmt(MYSQL_STMT* stmt);
 	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_DATE, params, NULL)
 
 #define set_inout_param_datetime(idx, buf, params) \
-	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_TIMESTAMP, params, NULL)
+	__basic_set_inout_param_int_or_date(idx, buf, MYSQL_TYPE_DATETIME, params, NULL)
 
 /* bind */
 
