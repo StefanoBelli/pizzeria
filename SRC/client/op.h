@@ -74,8 +74,16 @@ mybool manager_visualizza_entrate_giornaliere();
 mybool manager_visualizza_entrate_mensili();
 mybool manager_visualizza_scontrini_non_pagati();
 mybool manager_contrassegna_scontrino_pagato();
-mybool manager_assegna_tavolo_a_cliente(); // TODO
-mybool manager_visualizza_tavoli_poss_stampare_scontrino(); // TODO
-mybool manager_stampa_scontrino_tavolo_occupato(); // TODO
+mybool manager_assegna_tavolo_a_cliente();
+mybool manager_visualizza_tavoli_poss_stampare_scontrino();
+mybool manager_stampa_scontrino_tavolo_occupato();
+
+mybool cameriere_visualizza_situazione_tavoli();
+mybool cameriere_prendi_ordinazione();
+mybool cameriere_chiudi_ordinazione();
+mybool cameriere_prendi_scelta_per_ordinazione();
+mybool cameriere_aggiungi_ing_extra_per_scelta();
+mybool cameriere_visualizza_scelte_espletate();
+mybool cameriere_effettua_consegna();
 
 #endif

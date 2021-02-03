@@ -39,6 +39,21 @@ typedef struct {
 	double costo_totale;
 } scontrino;
 
+typedef struct {
+	MYSQL_TIME data_ora_occupazione;
+	int num_t;
+} tavolo_scontrino_stampabile;
+
+static mybool checked_show_form_action(form_field *fields, int nf) {
+	checked_show_form(fields, nf);
+	return TRUE;
+}
+
+static mybool checked_execute_stmt_action(MYSQL_STMT *stmt) {
+	checked_execute_stmt(stmt);
+	return TRUE;
+}
+
 mybool manager_crea_nuovo_utente() {
 	char nome[21] = { 0 };
     char cognome[21] = { 0 };
@@ -906,6 +921,12 @@ mybool manager_contrassegna_scontrino_pagato() {
 		return FALSE;
 	}
 
+	if(n_sct == 0) {
+		puts("nessuno scontrino presente");
+		good_free(sct);
+		return FALSE;
+	}
+
 	for(unsigned long long i = 0; i < n_sct; ++i) {
 		printf("--> (%lld) Id fiscale: %d\n\t"
 				"* Emissione: %d/%d/%d %d:%d:%d\n\t"
@@ -921,16 +942,13 @@ mybool manager_contrassegna_scontrino_pagato() {
 				sct[i].costo_totale);
     }
 
-	if(n_sct == 0) {
-		puts("nessuno scontrino presente");
-		good_free(sct);
-		return FALSE;
-	}
-
 	int sct_idx;
 	form_field fields[1];
 	int_form_field(fields, 0, "Scontrino", 1, 19, &sct_idx);
-	checked_show_form(fields, 1);
+	if(checked_show_form_action(fields, 1) == FALSE) {
+		good_free(sct);
+		return FALSE;
+	}
 
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call ContrassegnaScontrinoPagato(?)");
 
@@ -938,7 +956,10 @@ mybool manager_contrassegna_scontrino_pagato() {
 	set_inout_param_int(0, &(sct[sct_idx - 1].id_fiscale), params);
 	bind_param_stmt(stmt, params);
 
-	checked_execute_stmt(stmt);
+	if(checked_execute_stmt_action(stmt) == FALSE) {
+		good_free(sct);
+		return FALSE;
+	}
 
 	mybool is_ok = TRUE;
 	check_affected_stmt_rows(is_ok, stmt, 
@@ -986,12 +1007,86 @@ mybool manager_assegna_tavolo_a_cliente() {
 	return TRUE;
 }
 
+static mybool __manager_get_tavoli_scontrino_stampabile(tavolo_scontrino_stampabile** tss, unsigned long long *n_tss) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliScontrinoStampabile()");
+
+	checked_execute_stmt(stmt);
+
+	*n_tss = mysql_stmt_num_rows(stmt);
+	good_malloc(*tss, tavolo_scontrino_stampabile, *n_tss);
+
+	tavolo_scontrino_stampabile tss_base;
+	memset(&tss_base, 0, sizeof(tss_base));
+
+	INIT_MYSQL_BIND(params, 2);
+	set_inout_param_datetime(0, &tss_base.data_ora_occupazione, params);
+	set_inout_param_int(1, &tss_base.num_t, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	memcpy(tss[i], &tss_base, sizeof(tss));
+	memset(&tss_base, 0, sizeof(tss_base));
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
 mybool manager_visualizza_tavoli_poss_stampare_scontrino() {
-	puts("implementazione mancante");
+	tavolo_scontrino_stampabile *tss = NULL;
+	unsigned long long n_tss;
+	if(!__manager_get_tavoli_scontrino_stampabile(&tss, &n_tss)) {
+		return FALSE;
+	}
+
+	for(unsigned long long i = 0; i < n_tss; ++i) {
+		printf("--> Tavolo: %d\n", tss[i].num_t);
+	}
+
+	good_free(tss);
+	return TRUE;
+}
+
+static mybool __manager_stampa_scontrino_tavolo_occupato_perform(tavolo_scontrino_stampabile* tss) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call StampaScontrino(?)");
+	INIT_MYSQL_BIND(params, 1);
+	set_inout_param_datetime(0, &(tss->data_ora_occupazione), params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	close_everything_stmt(stmt);
 	return TRUE;
 }
 
 mybool manager_stampa_scontrino_tavolo_occupato() {
-	puts("implementazione mancante");
-	return TRUE;
+	tavolo_scontrino_stampabile *tss = NULL;
+	unsigned long long n_tss;
+	if(!__manager_get_tavoli_scontrino_stampabile(&tss, &n_tss)) {
+		return FALSE;
+	}
+
+	for(unsigned long long i = 0; i < n_tss; ++i) {
+		printf("(%lld) Tavolo: %d\n", i + 1, tss[i].num_t);
+	}
+
+	unsigned long long opt;
+
+	form_field fields[1];
+	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
+	if(!checked_show_form_action(fields, 1)) {
+		good_free(tss);
+		return FALSE;
+	}
+
+	if(opt < 1 || opt > n_tss) {
+		puts("opzione non valida");
+		good_free(tss);
+		return FALSE;
+	}
+
+	mybool is_ok = __manager_stampa_scontrino_tavolo_occupato_perform(tss);
+
+	good_free(tss);
+	return is_ok;
 }

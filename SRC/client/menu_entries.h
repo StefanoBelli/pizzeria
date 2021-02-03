@@ -6,7 +6,7 @@
 
 #define ENTRIES_LEN_MANAGER 27
 #define ENTRIES_LEN_BARMAN_E_PIZZAIOLO 0
-#define ENTRIES_LEN_CAMERIERE 0
+#define ENTRIES_LEN_CAMERIERE 7
 
 menu_entry entries_manager[ENTRIES_LEN_MANAGER] = 
 {
@@ -127,7 +127,34 @@ menu_entry entries_barman_e_pizzaiolo[ENTRIES_LEN_BARMAN_E_PIZZAIOLO] =
 
 menu_entry entries_cameriere[ENTRIES_LEN_CAMERIERE] = 
 {
-
+    {
+        "Visualizza situazione tavoli assegnati",
+        cameriere_visualizza_situazione_tavoli
+    },
+    {
+        "Prendi ordinazione da un tavolo occupato",
+        cameriere_prendi_ordinazione
+    },
+    {
+        "Chiudi ordinazione da un tavolo occupato",
+        cameriere_chiudi_ordinazione
+    },
+    {
+        "Prendi una scelta per ordinazione aperta",
+        cameriere_prendi_scelta_per_ordinazione
+    },
+    {
+        "Aggiungi ingrediente extra alla scelta",
+        cameriere_aggiungi_ing_extra_per_scelta
+    },
+    {
+        "Visualizza scelte espletate",
+        cameriere_visualizza_scelte_espletate
+    },
+    {
+        "Effettua consegna di una scelta espletata",
+        cameriere_effettua_consegna
+    }
 };
 
 #endif
