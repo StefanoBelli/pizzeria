@@ -3,7 +3,6 @@ create database pizzeriadb;
 use pizzeriadb;
 
 -- passwd SHA1
-drop table if exists UtenteLavoratore;
 create table UtenteLavoratore (
 	Username varchar(10) primary key,
 	Nome varchar(20) not null,
@@ -22,14 +21,12 @@ create table UtenteLavoratore (
 	)
 );
 
-drop table if exists Tavolo;
 create table Tavolo (
 	NumTavolo smallint primary key,
 	MaxCommensali tinyint unsigned not null,
 	IsOccupato boolean not null default false
 );
 
-drop table if exists Ingrediente;
 create table Ingrediente (
 	Nome varchar(20) primary key,
 	NumDisponibilitaScorte int unsigned not null,
@@ -39,7 +36,6 @@ create table Ingrediente (
 	)
 );
 
-drop table if exists ProdottoNelMenu;
 create table ProdottoNelMenu (
 	Nome varchar(20) primary key,
 	CostoUnitario float not null,
@@ -52,7 +48,6 @@ create table ProdottoNelMenu (
 	)
 );
 
-drop table if exists ComposizioneProdotto;
 create table ComposizioneProdotto(
 	NomeProdotto varchar(20) 
 		references ProdottoNelMenu(Nome) 
@@ -72,7 +67,6 @@ create index ComposizioneProdotto_NomeProdotto_fk
 create index ComposizioneProdotto_NomeIngrediente_fk
 	on ComposizioneProdotto(NomeIngrediente asc);
 
-drop table if exists Turno;
 create table Turno (
 	DataOraInizio datetime primary key,
 	DataOraFine datetime not null,
@@ -84,7 +78,6 @@ create table Turno (
 	)
 );
 
-drop table if exists TurnoAssegnato;
 create table TurnoAssegnato (
 	Turno datetime 
 		references Turno(DataOraInizio)
@@ -111,7 +104,6 @@ create index TurnoAssegnato_Tavolo_fk
 create index TurnoAssegnato_Cameriere_fk
 	on TurnoAssegnato(Cameriere asc);
 
-drop table if exists TavoloOccupato;
 create table TavoloOccupato (
 	DataOraOccupazione datetime primary key,
 	Nome varchar(20) not null,
@@ -126,7 +118,6 @@ create table TavoloOccupato (
 create index TavoloOccupato_Tavolo_fk
 	on TavoloOccupato(Tavolo asc);
 
-drop table if exists Scontrino;
 create table Scontrino (
 	IdFiscale int auto_increment primary key,
 	DataOraEmissione datetime not null,
@@ -146,7 +137,6 @@ create table Scontrino (
 create index Scontrino_TavoloOccupato_fk
 	on Scontrino(TavoloOccupato asc);
 
-drop table if exists Ordinazione;
 create table Ordinazione (
 	TavoloOccupato datetime
 		references TavoloOccupato(DataOraOccupazione)
@@ -169,7 +159,6 @@ create table Ordinazione (
 create index Ordinazione_TavoloOccupato_fk
 	on Ordinazione(TavoloOccupato asc);
 
-drop table if exists SceltaDelCliente;
 create table SceltaDelCliente (
 	TavoloOccupato datetime,
 	NumOrdinazionePerTavolo tinyint,
@@ -211,7 +200,6 @@ create index
 	on SceltaDelCliente(TavoloOccupato asc, 
 		NumOrdinazionePerTavolo asc);
 
-drop table if exists AggiuntaAlProdotto;
 create table AggiuntaAlProdotto (
 	TavoloOccupato datetime,
 	NumOrdinazionePerTavolo tinyint,
@@ -252,7 +240,6 @@ create index
 
 delimiter !
 
-drop trigger if exists TurnoCheckDataOraInizio_Insert!
 create trigger TurnoCheckDataOraInizio_Insert
 before insert on Turno for each row
 begin	
@@ -262,7 +249,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists TurnoCheckOverlap_Insert!
 create trigger TurnoCheckOverlap_Insert
 before insert on Turno for each row
 begin
@@ -283,7 +269,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists TurnoAssegnatoCheckIsCameriere_Insert!
 create trigger TurnoAssegnatoCheckIsCameriere_Insert
 before insert on TurnoAssegnato for each row
 begin
@@ -304,7 +289,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists ScontrinoCheckServizio_Insert!
 create trigger ScontrinoCheckServizio_Insert
 before insert on Scontrino for each row
 begin
@@ -325,7 +309,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists ScontrinoCheckPagato_AfterUpdate!
 create trigger ScontrinoCheckPagato_AfterUpdate
 after update on Scontrino for each row
 begin
@@ -345,7 +328,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists SceltaDelClienteCheckDates_BeforeUpdate!
 create trigger SceltaDelClienteCheckDates_BeforeUpdate
 before update on SceltaDelCliente for each row
 begin
@@ -356,7 +338,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists OrdinazioneCheckDates_BeforeUpdate!
 create trigger OrdinazioneCheckDates_BeforeUpdate
 before update on Ordinazione for each row
 begin
@@ -367,7 +348,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists OrdinazioneCheckAlreadyPendingOrScontrino_BeforeInsert!
 create trigger OrdinazioneCheckAlreadyPendingOrScontrino_BeforeInsert
 before insert on Ordinazione for each row
 begin
@@ -398,7 +378,6 @@ begin
 		
 end!
 
-drop trigger if exists SceltaDelClienteCheckDisp_BeforeInsert!
 create trigger SceltaDelClienteCheckDisp_BeforeInsert
 before insert on SceltaDelCliente for each row
 begin
@@ -440,7 +419,6 @@ begin
 	end if;
 end!
 
-drop trigger if exists SceltaDelClienteAddCosto_AfterInsert!
 create trigger SceltaDelClienteAddCosto_AfterInsert
 after insert on SceltaDelCliente for each row
 begin
@@ -459,7 +437,6 @@ begin
 		NumOrdinazionePerTavolo = NEW.NumOrdinazionePerTavolo;
 end!
 
-drop trigger if exists AggiuntaAlProdottoCheckDisp_BeforeInsert!
 create trigger AggiuntaAlProdottoCheckDisp_BeforeInsert
 before insert on AggiuntaAlProdotto for each row
 begin
@@ -487,7 +464,6 @@ begin
 		Nome = NEW.Ingrediente;
 end!
 
-drop trigger if exists AggiuntaAlProdottoAddCosto_AfterInsert!
 create trigger AggiuntaAlProdottoAddCosto_AfterInsert
 after insert on AggiuntaAlProdotto for each row
 begin
@@ -508,7 +484,6 @@ begin
 		NumOrdinazionePerTavolo = NEW.NumOrdinazionePerTavolo;
 end!
 
-drop trigger if exists SceltaDelClienteCheckTotalComplete_AfterUpdate!
 create trigger SceltaDelClienteCheckTotalComplete_AfterUpdate
 after update on SceltaDelCliente for each row
 begin
@@ -546,7 +521,6 @@ begin
 	end if;
 end!
 
-drop procedure if exists TentaLogin!
 create procedure TentaLogin(in usern varchar(10), in pwd varchar(45), out userRole tinyint)
 begin
 	set transaction read only;
@@ -568,7 +542,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists RegistraUtente!
 create procedure RegistraUtente(
 	in username varchar(10), 
 	in nome varchar(20),
@@ -615,7 +588,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists RipristinoPassword!
 create procedure RipristinoPassword(in usern varchar(10), in pwd varchar(45))
 begin
 	set transaction isolation level read uncommitted;
@@ -632,7 +604,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AggiungiNuovoTavolo!
 create procedure AggiungiNuovoTavolo(in numt smallint, in maxcomm tinyint)
 begin
 	declare exit handler for sqlexception
@@ -653,7 +624,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AggiungiNuovoIngrediente!
 create procedure AggiungiNuovoIngrediente(
 	in nomeIng varchar(20), 
 	in dispIniz int, 
@@ -677,7 +647,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AggiungiProdottoNelMenu!
 create procedure AggiungiProdottoNelMenu(
 		in prodNome varchar(20), 
 		in prodCostoUn float,
@@ -702,7 +671,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AssociaProdottoAIngrediente!
 create procedure AssociaProdottoAIngrediente(in nomeProd varchar(20), in nomeIng varchar(20))
 begin
 	declare exit handler for sqlexception
@@ -723,7 +691,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AggiungiTurno!
 create procedure AggiungiTurno(in inizio datetime, in fine datetime)
 begin
 	declare exit handler for sqlexception
@@ -744,7 +711,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists RimuoviProdottoNelMenu!
 create procedure RimuoviProdottoNelMenu(in nomeProd varchar(20))
 begin
 	declare exit handler for sqlexception
@@ -765,7 +731,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists RimuoviIngrediente!
 create procedure RimuoviIngrediente(in nomeIng varchar(20))
 begin
 	declare exit handler for sqlexception
@@ -786,7 +751,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists RimuoviAssocProdottoEIngrediente!
 create procedure RimuoviAssocProdottoEIngrediente(in nomeProd varchar(20), in nomeIng varchar(20))
 begin
 	declare exit handler for sqlexception
@@ -807,7 +771,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniTurni!
 create procedure OttieniTurni()
 begin
 	set transaction read only;
@@ -825,7 +788,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniUtenti!
 create procedure OttieniUtenti()
 begin
 	set transaction read only;
@@ -842,7 +804,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniTavoli!
 create procedure OttieniTavoli()
 begin
 	set transaction read only;
@@ -869,7 +830,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniTurniAssegnati!
 create procedure OttieniTurniAssegnati()
 begin
 	set transaction read only;
@@ -891,7 +851,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniTurnoAttuale!
 create procedure OttieniTurnoAttuale()
 begin
 	set transaction read only;
@@ -914,7 +873,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AssegnaTurno!
 create procedure AssegnaTurno(
 		in numTavolo smallint,
 		in dataOraInizioTurno datetime, 
@@ -938,7 +896,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniMenu!
 create procedure OttieniMenu()
 begin
 	set transaction read only;
@@ -956,7 +913,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniComposizioneProdotto!
 create procedure OttieniComposizioneProdotto()
 begin
 	set transaction read only;
@@ -972,7 +928,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniIngredienti!
 create procedure OttieniIngredienti()
 begin
 	set transaction read only;
@@ -988,7 +943,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists IncDispIngrediente!
 create procedure IncDispIngrediente(in nomeIng varchar(20), in incBy int)
 begin
 	set transaction isolation level read uncommitted;
@@ -1005,7 +959,6 @@ begin
 	commit;
 end!
 
-drop function if exists InTimeRange!
 create function InTimeRange(monthly boolean, tm datetime)
 returns boolean deterministic
 begin
@@ -1020,7 +973,6 @@ begin
 	return @by_month and DAY(@current_time) = DAY(tm);
 end!
 
-drop procedure if exists OttieniEntrate!
 create procedure OttieniEntrate(in mensili boolean)
 begin
 	set transaction read only;
@@ -1046,7 +998,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniScontriniNonPagati!
 create procedure OttieniScontriniNonPagati()
 begin
 	set transaction read only;
@@ -1064,7 +1015,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists ContrassegnaScontinoPagato!
 create procedure ContrassegnaScontrinoPagato(in idFisc int)
 begin
 	declare exit handler for sqlexception
@@ -1087,7 +1037,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AssegnaTavoloACliente!
 create procedure AssegnaTavoloACliente(
 		in cliNome varchar(20), 
 		in cliCognome varchar(20), 
@@ -1140,7 +1089,6 @@ begin
 	commit;
 end!
 
-drop function if exists TutteOrdConcluse!
 create function TutteOrdConcluse(dataOraOcc datetime)
 returns boolean deterministic
 begin
@@ -1170,7 +1118,6 @@ begin
 	return numTotali = numComplete;
 end!
 
-drop procedure if exists OttieniTavoliScontrinoStampabile!
 create procedure OttieniTavoliScontrinoStampabile()
 begin
 	declare exit handler for sqlexception
@@ -1196,7 +1143,6 @@ begin
 	commit;
 end!
 
-drop function if exists CalcoloCostoTotale!
 create function CalcoloCostoTotale(dataOraOcc datetime)
 returns int deterministic
 begin
@@ -1223,7 +1169,6 @@ begin
 	return @costoTotale;
 end!
 
-drop procedure if exists StampaScontrino!
 create procedure StampaScontrino(in dataOraOcc datetime)
 begin
 	declare exit handler for sqlexception
@@ -1262,15 +1207,15 @@ begin
 
 	select
 		Ord.NumOrdinazionePerTavolo as NumOrdinazione, 
-		Sdc.NumSceltaPerOrdinazione as NumScelta, 
+		Sdc.NumSceltaPerOrdinazione as NumScelta,
 		Sdc.ProdottoNelMenu as Prodotto,
 		Ap.Ingrediente as IngredienteExtra,
+		Ap.QuantitaInGr as QuantitaInGr,
 		Ord.Costo as Costo
 	from
 		(Ordinazione Ord join SceltaDelCliente Sdc on
 			Ord.TavoloOccupato = Sdc.TavoloOccupato and
-			Ord.NumOrdinazionePerTavolo = Sdc.NumOrdinazionePerTavolo) 
-		
+			Ord.NumOrdinazionePerTavolo = Sdc.NumOrdinazionePerTavolo)
 		left join AggiuntaAlProdotto Ap on
 			Ord.TavoloOccupato = Ap.TavoloOccupato and
 			Ord.NumOrdinazionePerTavolo = Ap.NumOrdinazionePerTavolo and
@@ -1292,7 +1237,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniTavoliDiCompetenza!
 create procedure OttieniTavoliDiCompetenza(in username varchar(10))
 begin
 	set transaction read only;
@@ -1320,7 +1264,6 @@ begin
 	commit;
 end!
 
-drop function if exists IsThisMyTable!
 create function IsThisMyTable(dataOraOcc datetime, usern varchar(10))
 returns boolean deterministic
 begin
@@ -1345,7 +1288,6 @@ begin
 	return false;
 end!
 
-drop procedure if exists PrendiOrdinazione!
 create procedure PrendiOrdinazione(in dataOraOcc datetime, in usern varchar(10))
 begin
 	declare exit handler for sqlexception
@@ -1376,7 +1318,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists ChiudiOrdinazione!
 create procedure ChiudiOrdinazione(in dataOraOcc datetime, in usern varchar(20))
 begin
 	declare exit handler for sqlexception
@@ -1413,7 +1354,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists PrendiSceltaPerOrd!
 create procedure PrendiSceltaPerOrd(
 	in dataOraOcc datetime, 
 	in nomeProd varchar(20), 
@@ -1468,7 +1408,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniSceltePerOrdinazione!
 create procedure OttieniSceltePerOrdinazione(in dataOraOcc datetime, in usern varchar(10))
 begin
 	declare exit handler for sqlexception
@@ -1502,7 +1441,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists AggiungiIngExtraAllaScelta!
 create procedure AggiungiIngExtraAllaScelta(
 	in dataOraOcc datetime,
 	in numOrdPerTav tinyint,
@@ -1545,7 +1483,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists OttieniScelteEspletate!
 create procedure OttieniScelteEspletate(in usern varchar(10))
 begin
 	set transaction read only;
@@ -1570,7 +1507,6 @@ begin
 	commit;
 end!
 
-drop procedure if exists EffettuaConsegna!
 create procedure EffettuaConsegna(
 	in dataOraOcc datetime, 
 	in numOrd tinyint, 
@@ -1602,6 +1538,187 @@ begin
 		signal sqlstate '45011'
 			set message_text = "Questo non è il tuo tavolo!";
 	end if;
+
+	commit;
+end!
+
+create procedure OttieniScelteDaPreparare()
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction read only;
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	select
+		Sdc.TavoloOccupato as TavoloOccupato,
+		Tocc.NumTavolo as NumTavolo,
+		Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
+		Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione,
+		Sdc.ProdottoNelMenu as ProdottoNelMenu
+	from
+		(SceltaDelCliente Sdc join Ordinazione Ord on
+			Sdc.TavoloOccupato = Ord.TavoloOccupato and
+			Sdc.NumOrdinazionePerTavolo = Ord.NumOrdinazionePerTavolo) join TavoloOccupato Tocc on 
+				Sdc.TavoloOccupato = Tocc.DataOraOccupazione
+	where
+		Sdc.LavoratoreCucina is NULL and
+		Sdc.DataOraEspletata is NULL and
+		Sdc.DataOraCompletamento is NULL and
+		Ord.DataOraCompletamento is NULL and
+		Ord.DataOraRichiesta is not NULL;
+
+	commit;
+end!
+
+create procedure PrendiInCaricoScelta(
+	in dataOraOcc datetime,
+	in numOrd int,
+	in numSc int,
+	in nomeProd varchar(20),
+	in usern varchar(10))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	set @role = (
+		select
+			Ruolo
+		from
+			UtenteLavoratore
+		where
+			Username = usern
+	);
+
+	set @isBarMenu = (
+		select
+			IsBarMenu
+		from
+			ProdottoNelMenu
+		where
+			Nome = nomeProd	
+	);
+
+	if @isBarMenu = true and @role <> 4 then
+		signal sqlstate '45016'
+			set message_text = "Non sei un barista!";
+	elseif @isBarMenu = false and @role <> 3 then
+		signal sqlstate '45017'
+			set message_text = "Non sei un pizzaiolo!";
+	end if;
+
+	update
+		SceltaDelCliente
+	set
+		LavoratoreCucina = usern
+	where
+		TavoloOccupato = dataOraOcc and
+		NumOrdinazionePerTavolo = numOrd and
+		NumSceltaPerOrdinazione = numSc and
+		LavoratoreCucina is NULL;
+
+	commit;
+end!
+
+create procedure OttieniSceltePreseInCaricoNonEspletate(in usern varchar(10))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction read only;
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	select
+		Sdc.TavoloOccupato as TavoloOccupato,
+		Tocc.Tavolo as NumTavolo,
+		Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
+		Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione,
+		Sdc.ProdottoNelMenu as ProdottoNelMenu
+	from
+		SceltaDelCliente Sdc join TavoloOccupato Tocc on
+			Sdc.TavoloOccupato = Tocc.DataOraOccupazione 
+	where
+		Sdc.DataOraEspletata is NULL and
+		Sdc.LavoratoreCucina = usern;
+
+	commit;
+end!
+
+create procedure EspletaSceltaPresaInCarico(
+	in dataOraOcc datetime,
+	in numOrd int,
+	in numSc int,
+	in usern varchar(10)
+)
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	update
+		SceltaDelCliente
+	set
+		DataOraEspletata = now()
+	where
+		DataOraEspletata is NULL and
+		LavoratoreCucina = usern;
+
+	commit;
+end!
+
+create procedure OttieniInfoProdottiDiScelteInCarico(in usern varchar(10))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction read only;
+	set transaction isolation level read committed;
+
+	start transaction;
+
+	select
+		Tocc.NumTavolo as Tavolo,
+		Sdc.NumOrdinazionePerTavolo as NumOrdPerTavolo,
+		Sdc.NumSceltaPerTavolo as NumSceltaPerOrd,
+		Sdc.ProdottoNelMenu as Prodotto,
+		Sdc.Ingrediente as IngredienteExtra,
+		Sdc.QuantitaInGr as QuantitaIngredienteExtraInGr
+	from
+		((SceltaDelCliente Sdc join ProdottoNelMenu Prod on
+			Sdc.ProdottoNelMenu = Prod.Nome) left join AggiuntaAlProdotto Ap on
+				Ap.TavoloOccupato = Sdc.TavoloOccupato and
+				Ap.NumOrdinazionePerTavolo = Sdc.NumOrdinazionePerTavolo and
+				Ap.NumSceltaPerOrdinazione = Sdc.NumSceltaPerOrdinazione) join TavoloOccupato Tocc on
+					Sdc.TavoloOccupato = Tocc.DataOraOccupazione
+	where
+		Sdc.LavoratoreCucina = usern and
+		Sdc.DataOraEspletata is NULL;
 
 	commit;
 end!
@@ -1660,5 +1777,19 @@ grant execute on procedure OttieniSceltePerOrdinazione to 'cameriere';
 grant execute on procedure AggiungiIngExtraAllaScelta to 'cameriere';
 grant execute on procedure OttieniScelteEspletate to 'cameriere';
 grant execute on procedure EffettuaConsegna to 'cameriere';
+
+grant execute on procedure OttieniScelteDaPreparare to 'pizzaiolo';
+grant execute on procedure PrendiInCaricoScelta to 'pizzaiolo';
+grant execute on procedure OttieniSceltePreseInCaricoNonEspletate to 'pizzaiolo';
+grant execute on procedure EspletaSceltaPresaInCarico to 'pizzaiolo';
+grant execute on procedure OttieniInfoProdottiDiScelteInCarico to 'pizzaiolo';
+
+grant execute on procedure OttieniScelteDaPreparare to 'barman';
+grant execute on procedure PrendiInCaricoScelta to 'barman';
+grant execute on procedure OttieniSceltePreseInCaricoNonEspletate to 'barman';
+grant execute on procedure EspletaSceltaPresaInCarico to 'barman';
+grant execute on procedure OttieniInfoProdottiDiScelteInCarico to 'barman';
+
+-- fine
 
 call RegistraUtente("ste","Stefano","Belli", "Cave", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "ste123", 1);

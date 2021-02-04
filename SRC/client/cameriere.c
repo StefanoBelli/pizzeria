@@ -144,7 +144,8 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 
 	if(close) {
 		if(mysql_stmt_affected_rows(stmt) == 0) {
-			puts("impossibile chiudere l'ordinazione");
+			printf("Impossibile chiudere l'ordinazione (opt: %lld)\n", 
+					numt);
 			is_ok = FALSE;
 		}
 	}
@@ -356,7 +357,9 @@ mybool cameriere_visualizza_scelte_espletate() {
 	return TRUE;
 }
 
-static mybool __cameriere_effettua_consegna_perform(scelta_del_cliente_espletata* esp) {
+static mybool __cameriere_effettua_consegna_perform(
+	scelta_del_cliente_espletata* esp, unsigned long long opt) {
+
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call EffettuaConsegna(?,?,?,?)");
 	INIT_MYSQL_BIND(params, 4);
 	set_inout_param_datetime(0, &(esp->data_ora_occ), params);
@@ -367,8 +370,12 @@ static mybool __cameriere_effettua_consegna_perform(scelta_del_cliente_espletata
 
 	checked_execute_stmt(stmt);
 
+	mybool is_ok = TRUE;
+	check_affected_stmt_rows(is_ok, stmt, "Impossibile effettuare la consegna (opt: %lld)\n", 
+							opt);
+
 	close_everything_stmt(stmt);
-	return TRUE;
+	return is_ok;
 }
 
 mybool cameriere_effettua_consegna() {
@@ -400,7 +407,7 @@ mybool cameriere_effettua_consegna() {
 		return FALSE;
 	}
 
-	mybool is_ok = __cameriere_effettua_consegna_perform(esp);
+	mybool is_ok = __cameriere_effettua_consegna_perform(esp, opt);
 
 	good_free(esp);
 	return is_ok;

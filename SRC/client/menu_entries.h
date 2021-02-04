@@ -5,7 +5,7 @@
 #include "myutils.h"
 
 #define ENTRIES_LEN_MANAGER 27
-#define ENTRIES_LEN_BARMAN_E_PIZZAIOLO 0
+#define ENTRIES_LEN_BARMAN_E_PIZZAIOLO 5
 #define ENTRIES_LEN_CAMERIERE 7
 
 menu_entry entries_manager[ENTRIES_LEN_MANAGER] = 
@@ -122,7 +122,26 @@ menu_entry entries_manager[ENTRIES_LEN_MANAGER] =
 
 menu_entry entries_barman_e_pizzaiolo[ENTRIES_LEN_BARMAN_E_PIZZAIOLO] = 
 {
-
+    {
+        "Visualizza scelte ancora da prendere in carico",
+        lavoratore_cucina_visualizza_scelte_da_preparare
+    },
+    {
+        "Prendi in carico scelta da preparare",
+        lavoratore_cucina_prendi_in_carico_scelta_da_preparare
+    },
+    {
+        "Visualizza scelte prese in carico da espletare",
+        lavoratore_cucina_visualizza_scelte_presa_in_carico_da_espletare
+    },
+    {
+        "Visualizza informazioni (ing extra e quantita) scelte prese in carico",
+        lavoretore_cucina_visualizza_info_scelte_prese_in_carico
+    },
+    {
+        "Espleta scelta",
+        lavoratore_cucina_espleta_scelta
+    }
 };
 
 menu_entry entries_cameriere[ENTRIES_LEN_CAMERIERE] = 
