@@ -76,10 +76,6 @@ static mybool __lavoratore_cucina_visualizza_scelte_da_preparare_oresp_common(my
 	return TRUE;
 }
 
-mybool lavoratore_cucina_visualizza_scelte_da_preparare() {
-	return __lavoratore_cucina_visualizza_scelte_da_preparare_oresp_common(FALSE);
-}
-
 mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare() {
 	scelta_da_preparare *sdp = NULL;
 	unsigned long long n_sdp;
@@ -132,10 +128,6 @@ mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare() {
 	good_free(sdp);
 	close_everything_stmt(stmt);
 	return is_ok; 
-}
-
-mybool lavoratore_cucina_visualizza_scelte_presa_in_carico_da_espletare() {
-	return __lavoratore_cucina_visualizza_scelte_da_preparare_oresp_common(TRUE);
 }
 
 mybool lavoratore_cucina_espleta_scelta() {
@@ -235,4 +227,12 @@ mybool lavoretore_cucina_visualizza_info_scelte_prese_in_carico() {
 	
 	close_everything_stmt(stmt);
 	return TRUE;
+}
+
+mybool lavoratore_cucina_visualizza_scelte_da_preparare() {
+	return __lavoratore_cucina_visualizza_scelte_da_preparare_oresp_common(FALSE);
+}
+
+mybool lavoratore_cucina_visualizza_scelte_presa_in_carico_da_espletare() {
+	return __lavoratore_cucina_visualizza_scelte_da_preparare_oresp_common(TRUE);
 }

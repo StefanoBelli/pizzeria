@@ -44,6 +44,12 @@ typedef struct {
 	int num_t;
 } tavolo_scontrino_stampabile;
 
+typedef struct {
+	unsigned long long idx_cameriere;
+	unsigned long long idx_tavolo;
+	unsigned long long idx_turno;
+} __assegna_turno_choice;
+
 static mybool checked_show_form_action(form_field *fields, int nf) {
 	checked_show_form(fields, nf);
 	return TRUE;
@@ -51,6 +57,381 @@ static mybool checked_show_form_action(form_field *fields, int nf) {
 
 static mybool checked_execute_stmt_action(MYSQL_STMT *stmt) {
 	checked_execute_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __manager_get_tavoli(tavolo **out_t, unsigned long long *n) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoli()");
+	checked_execute_stmt(stmt);
+
+	tavolo t;
+	
+	INIT_MYSQL_BIND(params, 4);
+	set_inout_param_int(0, &t.num_tavolo, params);
+	set_inout_param_int(1, &t.num_max_commensali, params);
+	set_inout_param_int(2, &t.is_occupato, params); /*MYBOOL*/
+	set_inout_param_int(3, &t.is_attivo, params); /*MYBOOL*/
+	bind_result_stmt(stmt, params);
+
+	*n = mysql_stmt_num_rows(stmt);
+	good_malloc(*out_t , tavolo, *n);
+
+	begin_fetch_stmt(stmt);
+	memcpy(out_t[i], &t, sizeof(t));
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __manager_assegna_turno_perform(tavolo* ta, MYSQL_TIME* tu, utente *u) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call AssegnaTurno(?,?,?)");
+
+	INIT_MYSQL_BIND(params, 3);
+	set_inout_param_smallint(0, &(ta->num_tavolo), params);
+	set_inout_param_datetime(1, tu, params);
+	set_in_param_string(2, u->username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static void __manager_assegna_turno_print(tavolo *ta, 
+	MYSQL_TIME *tu_inizio, MYSQL_TIME *tu_fine, 
+	utente *u, unsigned long long n_ta, unsigned long long n_tu, 
+	unsigned long long n_u) {
+
+	puts("TAVOLI");
+	for(unsigned long long i = 0; i < n_ta; ++i) {
+		printf("%llu) tavolo: %d, max commensali: %d\n", 
+			i + 1, ta[i].num_tavolo, ta[i].num_max_commensali);
+	}
+
+	puts("\nUTENTI");
+	for(unsigned long long i = 0; i < n_u; ++i) {
+		printf("%llu) %s %s (%s)\n", 
+			i + 1, u[i].nome, u[i].cognome, 
+			role_to_str(u[i].ruolo));
+	}
+
+	puts("\nTURNI");
+	for(unsigned long long i = 0; i < n_tu; ++i) {
+		printf("%llu) inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n", 
+			i + 1, tu_inizio[i].day, tu_inizio[i].month, 
+			tu_inizio[i].year, tu_inizio[i].hour, tu_inizio[i].minute,
+			tu_fine[i].day, tu_fine[i].month, tu_fine[i].year, 
+			tu_fine[i].hour, tu_fine[i].minute);
+	}
+}
+
+static mybool __manager_assegna_turno_readchoice(__assegna_turno_choice* choice) {
+	form_field fields[3];
+	int_form_field(fields, 0, "Tavolo", 1, 5, &(choice->idx_tavolo));
+	int_form_field(fields, 1, "Cameriere", 1, 19, &(choice->idx_cameriere));
+	int_form_field(fields, 2, "Turno", 1, 19, &(choice->idx_turno));
+
+	checked_show_form(fields, 3);
+
+	return TRUE;
+}
+
+static mybool __manager_visualizza_entrate_common_resultset(mybool monthly) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniEntrate(?)");
+
+	INIT_MYSQL_BIND(params, 1);
+	set_inout_param_tinyint(0, &monthly, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	int num_tot_scontrini;
+	double tot_pagato_scontrini = 0;
+	INIT_MYSQL_BIND(rs_tot, 2);
+	set_inout_param_int(0, &num_tot_scontrini, rs_tot);
+	set_inout_param_double(1, &tot_pagato_scontrini, rs_tot);
+	bind_result_stmt(stmt, rs_tot);
+
+	begin_fetch_stmt(stmt); //oneshot
+	end_fetch_stmt();
+
+	printf("***TOTALE SCONTRINI EMESSI E PAGATI: %d\n"
+			"***COSTO TOTALE (INCASSO): %lf\n"
+			"+-------------+\n", 
+		num_tot_scontrini, tot_pagato_scontrini);
+
+	next_result_stmt(stmt); // prossimo result set
+
+	int id_fiscale_scontrino;
+	MYSQL_TIME data_ora_emissione_scontrino;
+	double costo_totale_scontrino;
+	INIT_MYSQL_BIND(rs_each, 3);
+	set_inout_param_int(0, &id_fiscale_scontrino, rs_each);
+	set_inout_param_datetime(1, &data_ora_emissione_scontrino, rs_each);
+	set_inout_param_double(2, &costo_totale_scontrino, rs_each);
+	bind_result_stmt(stmt, rs_each);
+
+	begin_fetch_stmt(stmt); //mul res
+	printf("--> Id fiscale: %d\n\t"
+			"* Data e ora emissione: "
+			"%d/%d/%d %d:%d:%d\n\t"
+			"* Totale scontrino: %lf\n", 
+			id_fiscale_scontrino, 
+			data_ora_emissione_scontrino.day, 
+			data_ora_emissione_scontrino.month, 
+			data_ora_emissione_scontrino.year, 
+			data_ora_emissione_scontrino.hour, 
+			data_ora_emissione_scontrino.minute,
+			data_ora_emissione_scontrino.second,
+			costo_totale_scontrino);
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __manager_get_turni(
+		MYSQL_TIME** out_inizio, 
+		MYSQL_TIME** out_fine, 
+		unsigned long long* n) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTurni()");
+	checked_execute_stmt(stmt);
+	
+	MYSQL_TIME inizio;
+	MYSQL_TIME fine;
+	INIT_MYSQL_BIND(params, 2);
+	set_inout_param_datetime(0, &inizio, params);
+	set_inout_param_datetime(1, &fine, params);
+	bind_result_stmt(stmt, params);
+
+	*n = mysql_stmt_num_rows(stmt);
+	good_malloc(*out_inizio, MYSQL_TIME, *n);
+	good_malloc(*out_fine, MYSQL_TIME, *n);
+
+	begin_fetch_stmt(stmt);
+	(*out_inizio)[i] = inizio;
+	(*out_fine)[i] = fine;
+	end_fetch_stmt();
+
+    close_everything_stmt(stmt);
+    return TRUE;
+}
+
+static mybool __manager_get_utenti(utente** out_u, unsigned long long *n) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniUtenti()");
+	checked_execute_stmt(stmt);
+
+	utente u;
+	memset(&u, 0, sizeof(u));
+
+	INIT_MYSQL_BIND(params, 8);
+	set_out_param_string(0, u.username, params);
+    set_out_param_string(1, u.nome, params);
+    set_out_param_string(2, u.cognome, params);
+    set_out_param_string(3, u.cf, params);
+    set_out_param_string(4, u.comune_residenza, params);
+    set_out_param_string(5, u.comune_nascita, params);
+    set_inout_param_date(6, &u.data_nascita, params);
+    set_inout_param_int(7, &u.ruolo, params);
+	bind_result_stmt(stmt, params);
+
+    *n = mysql_stmt_num_rows(stmt);
+    good_malloc(*out_u, utente, *n);
+
+    begin_fetch_stmt(stmt);
+	memcpy(out_u[i], &u, sizeof(u));
+	memset(&u, 0, sizeof(u));
+	end_fetch_stmt();
+
+    close_everything_stmt(stmt);
+    return TRUE;
+}
+
+#define NE_TIME(x, y) \
+	( \
+		(x.day != y.day) || \
+		(x.month != y.month) || \
+		(x.year != y.year) || \
+		(x.hour != y.hour) || \
+		(x.minute != y.minute) \
+	)
+
+static mybool __manager_visualizza_turni_common_resultset(const char* query) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt(query);
+	checked_execute_stmt(stmt);
+
+	MYSQL_TIME turno_inizio;
+	MYSQL_TIME turno_fine;
+	int num_tavolo;
+	char nome[21] = { 0 };
+	char cognome[21] = { 0 };
+	char username[11] = { 0 };
+	my_bool num_tavolo_null;
+	my_bool nome_null;
+	my_bool cognome_null;
+	my_bool username_null;
+
+	INIT_MYSQL_BIND(params, 6);
+	set_inout_param_datetime(0, &turno_inizio, params);
+	set_inout_param_datetime(1, &turno_fine, params);
+	set_out_param_maybe_null_int(2, &num_tavolo, &num_tavolo_null, params);
+	set_out_param_maybe_null_string(3, nome, &nome_null, params);
+	set_out_param_maybe_null_string(4, cognome, &cognome_null, params);
+	set_out_param_maybe_null_string(5, username, &username_null, params);
+	bind_result_stmt(stmt, params);
+
+	MYSQL_TIME turno_inizio_cur;
+	memset(&turno_inizio_cur, 0, sizeof(turno_inizio_cur));
+
+	begin_fetch_stmt(stmt);
+
+	if(NE_TIME(turno_inizio_cur, turno_inizio)) {
+		memcpy(&turno_inizio_cur, &turno_inizio, sizeof(turno_inizio));
+		puts("*****");
+		printf("turno inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n",
+			turno_inizio.day, turno_inizio.month, turno_inizio.year, 
+			turno_inizio.hour, turno_inizio.minute, turno_fine.day,
+			turno_fine.month, turno_fine.year, turno_fine.hour,
+			turno_fine.minute);
+	}
+
+	if(num_tavolo_null && nome_null && cognome_null && username_null)
+		printf("\tnessun tavolo attivato e cameriere assegnato\n");
+	else
+		printf("\ttavolo %d servito da %s %s (%s)\n", num_tavolo, nome, cognome, username);
+
+	memset(nome, 0, sizeof(nome));
+	memset(cognome, 0, sizeof(cognome));
+	memset(username, 0, sizeof(username));
+
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+#undef NE_TIME
+
+static mybool __manager_get_scontrini_non_pagati(scontrino** scont, unsigned long long *n_scont) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScontriniNonPagati()");
+	checked_execute_stmt(stmt);
+
+	*n_scont = mysql_stmt_num_rows(stmt);
+	good_malloc(*scont, scontrino, *n_scont);
+
+	scontrino s;
+
+	INIT_MYSQL_BIND(params, 3);
+	set_inout_param_int(0, &s.id_fiscale, params);
+	set_inout_param_datetime(1, &s.data_ora_emissione, params);
+	set_inout_param_double(2, &s.costo_totale, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	(*scont)[i].id_fiscale = s.id_fiscale;
+	(*scont)[i].data_ora_emissione = s.data_ora_emissione;
+	(*scont)[i].costo_totale = s.costo_totale;
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static void __manager_stampa_scontrino_tavolo_occupato_print(MYSQL_STMT* stmt) {
+	int num_ord;
+	int num_sc_per_ord;
+	char nome_prod[21] = { 0 };
+	char nome_ing[21] = { 0 };
+	double qt_in_gr;
+	double costo;
+	my_bool ing_is_null;
+
+	INIT_MYSQL_BIND(params, 6);
+	set_inout_param_int(0, &num_ord, params);
+	set_inout_param_int(1, &num_sc_per_ord, params);
+	set_out_param_string(2, nome_prod, params);
+	set_out_param_maybe_null_string(3, nome_ing, &ing_is_null, params);
+	set_inout_param_double(4, &qt_in_gr, params);
+	set_inout_param_double(5, &costo, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	printf(" --> # ord: %d, # sc per ord: %d\n\t* %s\n", 
+		num_ord, num_sc_per_ord, nome_prod);
+	
+	if(!ing_is_null) {
+		printf("\t* Extra ingrediente: %s (%lf gr)\n", nome_ing, qt_in_gr);
+	}
+
+	printf("     Costo: %lf\n", costo);
+	end_fetch_stmt();
+
+	next_result_stmt(stmt);
+
+	int id_fiscale;
+	MYSQL_TIME data_ora_emissione;
+	double costo_totale;
+
+	RESET_MYSQL_BIND(params);
+	set_inout_param_int(0, &id_fiscale, params);
+	set_inout_param_datetime(1, &data_ora_emissione, params);
+	set_inout_param_double(2, &costo_totale, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	end_fetch_stmt();
+
+	printf("***** SCONTRINO %d %d/%d/%d %d:%d:%d *****\n"
+	"***** COSTO TOTALE: %lf *****\n"
+	"***** FINE SCONTRINO *****\n", 
+		id_fiscale, data_ora_emissione.day, 
+		data_ora_emissione.month, data_ora_emissione.year,
+		data_ora_emissione.hour, data_ora_emissione.minute,
+		data_ora_emissione.second, costo_totale);
+}
+
+static mybool __manager_get_tavoli_scontrino_stampabile(
+		tavolo_scontrino_stampabile** tss, 
+		unsigned long long *n_tss) {
+
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliScontrinoStampabile()");
+
+	checked_execute_stmt(stmt);
+
+	*n_tss = mysql_stmt_num_rows(stmt);
+	good_malloc(*tss, tavolo_scontrino_stampabile, *n_tss);
+
+	tavolo_scontrino_stampabile tss_base;
+	memset(&tss_base, 0, sizeof(tss_base));
+
+	INIT_MYSQL_BIND(params, 2);
+	set_inout_param_datetime(0, &tss_base.data_ora_occupazione, params);
+	set_inout_param_int(1, &tss_base.num_t, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	memcpy(tss[i], &tss_base, sizeof(tss_base));
+	memset(&tss_base, 0, sizeof(tss_base));
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __manager_stampa_scontrino_tavolo_occupato_perform(
+		tavolo_scontrino_stampabile* tss) {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call StampaScontrino(?)");
+	INIT_MYSQL_BIND(params, 1);
+	set_inout_param_datetime(0, &(tss->data_ora_occupazione), params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	__manager_stampa_scontrino_tavolo_occupato_print(stmt);
+
+	close_everything_stmt(stmt);
 	return TRUE;
 }
 
@@ -358,30 +739,6 @@ mybool manager_rimuovi_prodotto_e_ingrediente() {
     return is_ok;
 }
 
-static mybool __manager_get_turni(MYSQL_TIME** out_inizio, MYSQL_TIME** out_fine, unsigned long long* n) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTurni()");
-	checked_execute_stmt(stmt);
-	
-	MYSQL_TIME inizio;
-	MYSQL_TIME fine;
-	INIT_MYSQL_BIND(params, 2);
-	set_inout_param_datetime(0, &inizio, params);
-	set_inout_param_datetime(1, &fine, params);
-	bind_result_stmt(stmt, params);
-
-	*n = mysql_stmt_num_rows(stmt);
-	good_malloc(*out_inizio, MYSQL_TIME, *n);
-	good_malloc(*out_fine, MYSQL_TIME, *n);
-
-	begin_fetch_stmt(stmt);
-	(*out_inizio)[i] = inizio;
-	(*out_fine)[i] = fine;
-	end_fetch_stmt();
-
-    close_everything_stmt(stmt);
-    return TRUE;
-}
-
 mybool manager_visualizza_turni() {
 	MYSQL_TIME *turno_inizio = NULL;
 	MYSQL_TIME *turno_fine = NULL;
@@ -404,36 +761,6 @@ mybool manager_visualizza_turni() {
 	return TRUE;
 }
 
-static mybool __manager_get_utenti(utente** out_u, unsigned long long *n) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniUtenti()");
-	checked_execute_stmt(stmt);
-
-	utente u;
-	memset(&u, 0, sizeof(utente));
-
-	INIT_MYSQL_BIND(params, 8);
-	set_out_param_string(0, u.username, params);
-    set_out_param_string(1, u.nome, params);
-    set_out_param_string(2, u.cognome, params);
-    set_out_param_string(3, u.cf, params);
-    set_out_param_string(4, u.comune_residenza, params);
-    set_out_param_string(5, u.comune_nascita, params);
-    set_inout_param_date(6, &u.data_nascita, params);
-    set_inout_param_int(7, &u.ruolo, params);
-	bind_result_stmt(stmt, params);
-
-    *n = mysql_stmt_num_rows(stmt);
-    good_malloc(*out_u, utente, *n);
-
-    begin_fetch_stmt(stmt);
-	memcpy(&(*out_u)[i], &u, sizeof(utente));
-	memset(&u, 0, sizeof(utente));
-	end_fetch_stmt();
-
-    close_everything_stmt(stmt);
-    return TRUE;
-}
-
 mybool manager_visualizza_utenti() {
 	unsigned long long n_ut;
 	utente *ut = NULL;
@@ -453,30 +780,6 @@ mybool manager_visualizza_utenti() {
 	return TRUE;
 }
 
-static mybool __manager_get_tavoli(tavolo **out_t, unsigned long long *n) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoli()");
-	checked_execute_stmt(stmt);
-
-	tavolo t;
-	
-	INIT_MYSQL_BIND(params, 4);
-	set_inout_param_int(0, &t.num_tavolo, params);
-	set_inout_param_int(1, &t.num_max_commensali, params);
-	set_inout_param_int(2, &t.is_occupato, params); /*MYBOOL*/
-	set_inout_param_int(3, &t.is_attivo, params); /*MYBOOL*/
-	bind_result_stmt(stmt, params);
-
-	*n = mysql_stmt_num_rows(stmt);
-	good_malloc(*out_t , tavolo, *n);
-
-	begin_fetch_stmt(stmt);
-	memcpy(&(*out_t)[i], &t, sizeof(tavolo));
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
 mybool manager_visualizza_tavoli() {
 	unsigned long long n_t;
 	tavolo *t = NULL;
@@ -492,66 +795,6 @@ mybool manager_visualizza_tavoli() {
 	}
 
 	good_free(t);
-	return TRUE;
-}
-
-static mybool __manager_assegna_turno_perform(tavolo* ta, MYSQL_TIME* tu, utente *u) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call AssegnaTurno(?,?,?)");
-
-	INIT_MYSQL_BIND(params, 3);
-	set_inout_param_smallint(0, &(ta->num_tavolo), params);
-	set_inout_param_datetime(1, tu, params);
-	set_in_param_string(2, u->username, params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
-static void __manager_assegna_turno_print(tavolo *ta, 
-	MYSQL_TIME *tu_inizio, MYSQL_TIME *tu_fine, 
-	utente *u, unsigned long long n_ta, unsigned long long n_tu, 
-	unsigned long long n_u) {
-
-	puts("TAVOLI");
-	for(unsigned long long i = 0; i < n_ta; ++i) {
-		printf("%llu) tavolo: %d, max commensali: %d\n", 
-			i + 1, ta[i].num_tavolo, ta[i].num_max_commensali);
-	}
-
-	puts("\nUTENTI");
-	for(unsigned long long i = 0; i < n_u; ++i) {
-		printf("%llu) %s %s (%s)\n", 
-			i + 1, u[i].nome, u[i].cognome, 
-			role_to_str(u[i].ruolo));
-	}
-
-	puts("\nTURNI");
-	for(unsigned long long i = 0; i < n_tu; ++i) {
-		printf("%llu) inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n", 
-			i + 1, tu_inizio[i].day, tu_inizio[i].month, 
-			tu_inizio[i].year, tu_inizio[i].hour, tu_inizio[i].minute,
-			tu_fine[i].day, tu_fine[i].month, tu_fine[i].year, 
-			tu_fine[i].hour, tu_fine[i].minute);
-	}
-}
-
-typedef struct {
-	unsigned long long idx_cameriere;
-	unsigned long long idx_tavolo;
-	unsigned long long idx_turno;
-} __assegna_turno_choice;
-
-static mybool __manager_assegna_turno_readchoice(__assegna_turno_choice* choice) {
-	form_field fields[3];
-	int_form_field(fields, 0, "Tavolo", 1, 5, &(choice->idx_tavolo));
-	int_form_field(fields, 1, "Cameriere", 1, 19, &(choice->idx_cameriere));
-	int_form_field(fields, 2, "Turno", 1, 19, &(choice->idx_turno));
-
-	checked_show_form(fields, 3);
-
 	return TRUE;
 }
 
@@ -619,71 +862,6 @@ mybool manager_assegna_turno() {
 	good_free(tu_fine);
 	return is_ok;
 }
-
-#define NE_TIME(x, y) \
-	( \
-		(x.day != y.day) || \
-		(x.month != y.month) || \
-		(x.year != y.year) || \
-		(x.hour != y.hour) || \
-		(x.minute != y.minute) \
-	)
-
-static mybool __manager_visualizza_turni_common_resultset(const char* query) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt(query);
-	checked_execute_stmt(stmt);
-
-	MYSQL_TIME turno_inizio;
-	MYSQL_TIME turno_fine;
-	int num_tavolo;
-	char nome[21] = { 0 };
-	char cognome[21] = { 0 };
-	char username[11] = { 0 };
-	my_bool num_tavolo_null;
-	my_bool nome_null;
-	my_bool cognome_null;
-	my_bool username_null;
-
-	INIT_MYSQL_BIND(params, 6);
-	set_inout_param_datetime(0, &turno_inizio, params);
-	set_inout_param_datetime(1, &turno_fine, params);
-	set_out_param_maybe_null_int(2, &num_tavolo, &num_tavolo_null, params);
-	set_out_param_maybe_null_string(3, nome, &nome_null, params);
-	set_out_param_maybe_null_string(4, cognome, &cognome_null, params);
-	set_out_param_maybe_null_string(5, username, &username_null, params);
-	bind_result_stmt(stmt, params);
-
-	MYSQL_TIME turno_inizio_cur;
-	memset(&turno_inizio_cur, 0, sizeof(MYSQL_TIME));
-
-	begin_fetch_stmt(stmt);
-
-	if(NE_TIME(turno_inizio_cur, turno_inizio)) {
-		memcpy(&turno_inizio_cur, &turno_inizio, sizeof(MYSQL_TIME));
-		puts("*****");
-		printf("turno inizio: %d/%d/%d %d:%d -- fine: %d/%d/%d %d:%d\n",
-			turno_inizio.day, turno_inizio.month, turno_inizio.year, 
-			turno_inizio.hour, turno_inizio.minute, turno_fine.day,
-			turno_fine.month, turno_fine.year, turno_fine.hour,
-			turno_fine.minute);
-	}
-
-	if(num_tavolo_null && nome_null && cognome_null && username_null)
-		printf("\tnessun tavolo attivato e cameriere assegnato\n");
-	else
-		printf("\ttavolo %d servito da %s %s (%s)\n", num_tavolo, nome, cognome, username);
-
-	memset(nome, 0, sizeof(nome));
-	memset(cognome, 0, sizeof(cognome));
-	memset(username, 0, sizeof(username));
-
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
-#undef NE_TIME
 
 mybool manager_visualizza_turni_assegnati() {
 	return __manager_visualizza_turni_common_resultset("call OttieniTurniAssegnati()");
@@ -813,91 +991,12 @@ mybool manager_inc_disp_ingrediente() {
 	return is_ok;
 }
 
-static mybool __manager_visualizza_entrate_common_resultset(mybool monthly) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniEntrate(?)");
-
-	INIT_MYSQL_BIND(params, 1);
-	set_inout_param_tinyint(0, &monthly, params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	int num_tot_scontrini;
-	double tot_pagato_scontrini = 0;
-	INIT_MYSQL_BIND(rs_tot, 2);
-	set_inout_param_int(0, &num_tot_scontrini, rs_tot);
-	set_inout_param_double(1, &tot_pagato_scontrini, rs_tot);
-	bind_result_stmt(stmt, rs_tot);
-
-	begin_fetch_stmt(stmt); //oneshot
-	end_fetch_stmt();
-
-	printf("***TOTALE SCONTRINI EMESSI E PAGATI: %d\n"
-			"***COSTO TOTALE (INCASSO): %lf\n"
-			"+-------------+\n", 
-		num_tot_scontrini, tot_pagato_scontrini);
-
-	next_result_stmt(stmt); // prossimo result set
-
-	int id_fiscale_scontrino;
-	MYSQL_TIME data_ora_emissione_scontrino;
-	double costo_totale_scontrino;
-	INIT_MYSQL_BIND(rs_each, 3);
-	set_inout_param_int(0, &id_fiscale_scontrino, rs_each);
-	set_inout_param_datetime(1, &data_ora_emissione_scontrino, rs_each);
-	set_inout_param_double(2, &costo_totale_scontrino, rs_each);
-	bind_result_stmt(stmt, rs_each);
-
-	begin_fetch_stmt(stmt); //mul res
-	printf("--> Id fiscale: %d\n\t"
-			"* Data e ora emissione: "
-			"%d/%d/%d %d:%d:%d\n\t"
-			"* Totale scontrino: %lf\n", 
-			id_fiscale_scontrino, 
-			data_ora_emissione_scontrino.day, 
-			data_ora_emissione_scontrino.month, 
-			data_ora_emissione_scontrino.year, 
-			data_ora_emissione_scontrino.hour, 
-			data_ora_emissione_scontrino.minute,
-			data_ora_emissione_scontrino.second,
-			costo_totale_scontrino);
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
 mybool manager_visualizza_entrate_giornaliere() {
 	return __manager_visualizza_entrate_common_resultset(FALSE);
 }
 
 mybool manager_visualizza_entrate_mensili() {
 	return __manager_visualizza_entrate_common_resultset(TRUE);
-}
-
-static mybool __manager_get_scontrini_non_pagati(scontrino** scont, unsigned long long *n_scont) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScontriniNonPagati()");
-	checked_execute_stmt(stmt);
-
-	*n_scont = mysql_stmt_num_rows(stmt);
-	good_malloc(*scont, scontrino, *n_scont);
-
-	scontrino s;
-
-	INIT_MYSQL_BIND(params, 3);
-	set_inout_param_int(0, &s.id_fiscale, params);
-	set_inout_param_datetime(1, &s.data_ora_emissione, params);
-	set_inout_param_double(2, &s.costo_totale, params);
-	bind_result_stmt(stmt, params);
-
-	begin_fetch_stmt(stmt);
-	(*scont)[i].id_fiscale = s.id_fiscale;
-	(*scont)[i].data_ora_emissione = s.data_ora_emissione;
-	(*scont)[i].costo_totale = s.costo_totale;
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
 }
 
 mybool manager_visualizza_scontrini_non_pagati() {
@@ -1024,33 +1123,6 @@ mybool manager_assegna_tavolo_a_cliente() {
 	return TRUE;
 }
 
-static mybool __manager_get_tavoli_scontrino_stampabile(
-		tavolo_scontrino_stampabile** tss, 
-		unsigned long long *n_tss) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliScontrinoStampabile()");
-
-	checked_execute_stmt(stmt);
-
-	*n_tss = mysql_stmt_num_rows(stmt);
-	good_malloc(*tss, tavolo_scontrino_stampabile, *n_tss);
-
-	tavolo_scontrino_stampabile tss_base;
-	memset(&tss_base, 0, sizeof(tss_base));
-
-	INIT_MYSQL_BIND(params, 2);
-	set_inout_param_datetime(0, &tss_base.data_ora_occupazione, params);
-	set_inout_param_int(1, &tss_base.num_t, params);
-	bind_result_stmt(stmt, params);
-
-	begin_fetch_stmt(stmt);
-	memcpy(tss[i], &tss_base, sizeof(tss_base));
-	memset(&tss_base, 0, sizeof(tss_base));
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
 mybool manager_visualizza_tavoli_poss_stampare_scontrino() {
 	tavolo_scontrino_stampabile *tss = NULL;
 	unsigned long long n_tss;
@@ -1063,74 +1135,6 @@ mybool manager_visualizza_tavoli_poss_stampare_scontrino() {
 	}
 
 	good_free(tss);
-	return TRUE;
-}
-
-static void __manager_stampa_scontrino_tavolo_occupato_print(MYSQL_STMT* stmt) {
-	int num_ord;
-	int num_sc_per_ord;
-	char nome_prod[21] = { 0 };
-	char nome_ing[21] = { 0 };
-	double qt_in_gr;
-	double costo;
-	my_bool ing_is_null;
-
-	INIT_MYSQL_BIND(params, 6);
-	set_inout_param_int(0, &num_ord, params);
-	set_inout_param_int(1, &num_sc_per_ord, params);
-	set_out_param_string(2, nome_prod, params);
-	set_out_param_maybe_null_string(3, nome_ing, &ing_is_null, params);
-	set_inout_param_double(4, &qt_in_gr, params);
-	set_inout_param_double(5, &costo, params);
-	bind_result_stmt(stmt, params);
-
-	begin_fetch_stmt(stmt);
-	printf(" --> # ord: %d, # sc per ord: %d\n\t* %s\n", 
-		num_ord, num_sc_per_ord, nome_prod);
-	
-	if(!ing_is_null) {
-		printf("\t* Extra ingrediente: %s (%lf gr)\n", nome_ing, qt_in_gr);
-	}
-
-	printf("     Costo: %lf\n", costo);
-	end_fetch_stmt();
-
-	next_result_stmt(stmt);
-
-	int id_fiscale;
-	MYSQL_TIME data_ora_emissione;
-	double costo_totale;
-
-	RESET_MYSQL_BIND(params);
-	set_inout_param_int(0, &id_fiscale, params);
-	set_inout_param_datetime(1, &data_ora_emissione, params);
-	set_inout_param_double(2, &costo_totale, params);
-	bind_result_stmt(stmt, params);
-
-	begin_fetch_stmt(stmt);
-	end_fetch_stmt();
-
-	printf("***** SCONTRINO %d %d/%d/%d %d:%d:%d *****\n"
-	"***** COSTO TOTALE: %lf *****\n"
-	"***** FINE SCONTRINO *****\n", 
-		id_fiscale, data_ora_emissione.day, 
-		data_ora_emissione.month, data_ora_emissione.year,
-		data_ora_emissione.hour, data_ora_emissione.minute,
-		data_ora_emissione.second, costo_totale);
-}
-
-static mybool __manager_stampa_scontrino_tavolo_occupato_perform(
-		tavolo_scontrino_stampabile* tss) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call StampaScontrino(?)");
-	INIT_MYSQL_BIND(params, 1);
-	set_inout_param_datetime(0, &(tss->data_ora_occupazione), params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	__manager_stampa_scontrino_tavolo_occupato_print(stmt);
-
-	close_everything_stmt(stmt);
 	return TRUE;
 }
 

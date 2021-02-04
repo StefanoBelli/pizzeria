@@ -35,7 +35,9 @@ static mybool checked_execute_stmt_action(MYSQL_STMT* stmt) {
 	return TRUE;
 }
 
-static mybool __cameriere_get_situazione_tavolo(situazione_tavolo** st, unsigned long long *n_st) {
+static mybool __cameriere_get_situazione_tavolo(
+		situazione_tavolo** st, unsigned long long *n_st) {
+			
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliDiCompetenza(?)");
 
 	INIT_MYSQL_BIND(params, 1);
@@ -59,36 +61,11 @@ static mybool __cameriere_get_situazione_tavolo(situazione_tavolo** st, unsigned
 	bind_result_stmt(stmt, res);
 
 	begin_fetch_stmt(stmt);
-	memcpy(&((*st)[i]), &myst, sizeof(myst));
+	memcpy(st[i], &myst, sizeof(myst));
     memset(&myst.data_ora_occupazione, 0, sizeof(myst.data_ora_occupazione));
     end_fetch_stmt();
 
 	close_everything_stmt(stmt);
-	return TRUE;
-}
-
-mybool cameriere_visualizza_situazione_tavoli() {
-	situazione_tavolo *st = NULL;
-	unsigned long long n_st;
-
-	if(!__cameriere_get_situazione_tavolo(&st, &n_st)) {
-		return FALSE;
-	}
-
-	for(unsigned long long i = 0; i < n_st; ++i) {
-		printf("--> tavolo: %d, occupato: %s", 
-			st[i].num_tavolo, 
-			mybool_to_str(st[i].is_occupato));
-		if(st[i].is_occupato) {
-			printf(", commensali: %d, servito: %s\n", 
-				st[i].num_commensali, 
-				mybool_to_str(st[i].is_servito_almeno_una_volta));
-		} else {
-			puts("");
-		}
-	}
-
-	good_free(st);
 	return TRUE;
 }
 
@@ -155,6 +132,121 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 	return is_ok;
 }
 
+static mybool __cameriere_get_scelte_del_cliente(
+		MYSQL_TIME* data_ora_occ, scelta_del_cliente** sdc, 
+		unsigned long long *n_sdc) {
+
+	MYSQL_STMT* stmt = init_and_prepare_stmt("call OttieniSceltePerOrdinazione(?,?)");
+	INIT_MYSQL_BIND(params, 2);
+	set_inout_param_datetime(0, data_ora_occ, params);
+	set_in_param_string(1, cfg.username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	*n_sdc = mysql_stmt_num_rows(stmt);
+	good_malloc(*sdc, scelta_del_cliente, *n_sdc);
+
+	scelta_del_cliente base;
+	memset(&base, 0, sizeof(base));
+
+	INIT_MYSQL_BIND(res_params, 3);
+	set_inout_param_int(0, &base.num_ord_per_tavolo, res_params);
+	set_inout_param_int(1, &base.num_sc_per_ord, res_params);
+	set_out_param_string(2, base.nome_prod, res_params);
+	bind_result_stmt(stmt, res_params);
+
+	begin_fetch_stmt(stmt);
+	memcpy((*sdc[i]).nome_prod, base.nome_prod, strlen(base.nome_prod));
+	(*sdc[i]).num_ord_per_tavolo = base.num_ord_per_tavolo;
+	(*sdc[i]).num_sc_per_ord = base.num_sc_per_ord;
+	memset(&base, 0, sizeof(base));
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __cameriere_get_scelte_espletate(
+		scelta_del_cliente_espletata** esp, 
+		unsigned long long *n_esp) {
+
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScelteEspletate(?)");
+	INIT_MYSQL_BIND(params, 1);
+	set_in_param_string(0, cfg.username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	*n_esp = mysql_stmt_num_rows(stmt);
+	good_malloc(*esp, scelta_del_cliente_espletata, *n_esp);
+
+	scelta_del_cliente_espletata sdc_esp;
+	memset(&sdc_esp, 0, sizeof(sdc_esp));
+
+	INIT_MYSQL_BIND(resp, 5);
+	set_inout_param_datetime(0, &sdc_esp.data_ora_occ, resp);
+	set_inout_param_int(1, &sdc_esp.num_ord_per_tavolo, resp);
+	set_inout_param_int(2, &sdc_esp.num_sc_per_ord, resp);
+	set_inout_param_int(3, &sdc_esp.num_t, resp);
+	set_out_param_string(4, sdc_esp.nome_prod, resp);
+	bind_result_stmt(stmt, resp);
+
+	begin_fetch_stmt(stmt);
+	memcpy(esp[i], &sdc_esp, sizeof(sdc_esp));
+	memset(&sdc_esp, 0, sizeof(sdc_esp));
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
+static mybool __cameriere_effettua_consegna_perform(
+	scelta_del_cliente_espletata* esp, unsigned long long opt) {
+
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call EffettuaConsegna(?,?,?,?)");
+	INIT_MYSQL_BIND(params, 4);
+	set_inout_param_datetime(0, &(esp->data_ora_occ), params);
+	set_inout_param_int(1, &(esp->num_ord_per_tavolo), params);
+	set_inout_param_int(2, &(esp->num_sc_per_ord), params);
+	set_in_param_string(3, cfg.username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	mybool is_ok = TRUE;
+	check_affected_stmt_rows(is_ok, stmt, "Impossibile effettuare la consegna (opt: %llu)\n", 
+							opt);
+
+	close_everything_stmt(stmt);
+	return is_ok;
+}
+
+mybool cameriere_visualizza_situazione_tavoli() {
+	situazione_tavolo *st = NULL;
+	unsigned long long n_st;
+
+	if(!__cameriere_get_situazione_tavolo(&st, &n_st)) {
+		return FALSE;
+	}
+
+	for(unsigned long long i = 0; i < n_st; ++i) {
+		printf("--> tavolo: %d, occupato: %s", 
+			st[i].num_tavolo, 
+			mybool_to_str(st[i].is_occupato));
+		if(st[i].is_occupato) {
+			printf(", commensali: %d, servito: %s\n", 
+				st[i].num_commensali, 
+				mybool_to_str(st[i].is_servito_almeno_una_volta));
+		} else {
+			puts("");
+		}
+	}
+
+	good_free(st);
+	return TRUE;
+}
+
 mybool cameriere_chiudi_ordinazione() {
 	return __cameriere_prendi_ordinazione_common(TRUE);
 }
@@ -217,38 +309,6 @@ mybool cameriere_prendi_scelta_per_ordinazione() {
 	return TRUE;
 }
 
-static mybool __cameriere_get_scelte_del_cliente(MYSQL_TIME* data_ora_occ, scelta_del_cliente** sdc, unsigned long long *n_sdc) {
-	MYSQL_STMT* stmt = init_and_prepare_stmt("call OttieniSceltePerOrdinazione(?,?)");
-	INIT_MYSQL_BIND(params, 2);
-	set_inout_param_datetime(0, data_ora_occ, params);
-	set_in_param_string(1, cfg.username, params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	*n_sdc = mysql_stmt_num_rows(stmt);
-	good_malloc(*sdc, scelta_del_cliente, *n_sdc);
-
-	scelta_del_cliente base;
-	memset(&base, 0, sizeof(scelta_del_cliente));
-
-	INIT_MYSQL_BIND(res_params, 3);
-	set_inout_param_int(0, &base.num_ord_per_tavolo, res_params);
-	set_inout_param_int(1, &base.num_sc_per_ord, res_params);
-	set_out_param_string(2, base.nome_prod, res_params);
-	bind_result_stmt(stmt, res_params);
-
-	begin_fetch_stmt(stmt);
-	memcpy((*sdc[i]).nome_prod, base.nome_prod, strlen(base.nome_prod));
-	(*sdc[i]).num_ord_per_tavolo = base.num_ord_per_tavolo;
-	(*sdc[i]).num_sc_per_ord = base.num_sc_per_ord;
-	memset(&base, 0, sizeof(scelta_del_cliente));
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
 mybool cameriere_aggiungi_ing_extra_per_scelta() {
 	situazione_tavolo *st = NULL;
 	unsigned long long n_st;
@@ -308,37 +368,6 @@ mybool cameriere_aggiungi_ing_extra_per_scelta() {
 	return TRUE;
 }
 
-static mybool __cameriere_get_scelte_espletate(scelta_del_cliente_espletata** esp, unsigned long long *n_esp) {
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScelteEspletate(?)");
-	INIT_MYSQL_BIND(params, 1);
-	set_in_param_string(0, cfg.username, params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	*n_esp = mysql_stmt_num_rows(stmt);
-	good_malloc(*esp, scelta_del_cliente_espletata, *n_esp);
-
-	scelta_del_cliente_espletata sdc_esp;
-	memset(&sdc_esp, 0, sizeof(sdc_esp));
-
-	INIT_MYSQL_BIND(resp, 5);
-	set_inout_param_datetime(0, &sdc_esp.data_ora_occ, resp);
-	set_inout_param_int(1, &sdc_esp.num_ord_per_tavolo, resp);
-	set_inout_param_int(2, &sdc_esp.num_sc_per_ord, resp);
-	set_inout_param_int(3, &sdc_esp.num_t, resp);
-	set_out_param_string(4, sdc_esp.nome_prod, resp);
-	bind_result_stmt(stmt, resp);
-
-	begin_fetch_stmt(stmt);
-	memcpy(esp[i], &sdc_esp, sizeof(scelta_del_cliente_espletata));
-	memset(&sdc_esp, 0, sizeof(scelta_del_cliente_espletata));
-	end_fetch_stmt();
-
-	close_everything_stmt(stmt);
-	return TRUE;
-}
-
 mybool cameriere_visualizza_scelte_espletate() {
 	scelta_del_cliente_espletata* esp = NULL;
 	unsigned long long n_esp;
@@ -355,27 +384,6 @@ mybool cameriere_visualizza_scelte_espletate() {
 
 	good_free(esp);
 	return TRUE;
-}
-
-static mybool __cameriere_effettua_consegna_perform(
-	scelta_del_cliente_espletata* esp, unsigned long long opt) {
-
-	MYSQL_STMT *stmt = init_and_prepare_stmt("call EffettuaConsegna(?,?,?,?)");
-	INIT_MYSQL_BIND(params, 4);
-	set_inout_param_datetime(0, &(esp->data_ora_occ), params);
-	set_inout_param_int(1, &(esp->num_ord_per_tavolo), params);
-	set_inout_param_int(2, &(esp->num_sc_per_ord), params);
-	set_in_param_string(3, cfg.username, params);
-	bind_param_stmt(stmt, params);
-
-	checked_execute_stmt(stmt);
-
-	mybool is_ok = TRUE;
-	check_affected_stmt_rows(is_ok, stmt, "Impossibile effettuare la consegna (opt: %llu)\n", 
-							opt);
-
-	close_everything_stmt(stmt);
-	return is_ok;
 }
 
 mybool cameriere_effettua_consegna() {
