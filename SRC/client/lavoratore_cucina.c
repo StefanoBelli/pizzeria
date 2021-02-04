@@ -88,7 +88,7 @@ mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare() {
 	}
 
 	for(unsigned long long i = 0; i < n_sdp; ++i) {
-		printf("(%lld) Tavolo: %d, # ord: %d, # sc per ord: %d, prodotto: %s\n",
+		printf("(%llu) Tavolo: %d, # ord: %d, # sc per ord: %d, prodotto: %s\n",
 			i + 1, sdp[i].num_tavolo, sdp[i].num_ord_per_tavolo, 
 			sdp[i].num_sc_per_ord,  sdp[i].nome_prod);
 	}
@@ -126,7 +126,7 @@ mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare() {
 
 	mybool is_ok = TRUE;
 	check_affected_stmt_rows(is_ok, stmt, 
-		"non è stato possibile prendere in carico la scelta (opt: %lld)\n", 
+		"non è stato possibile prendere in carico la scelta (opt: %llu)\n", 
 		opt);
 
 	good_free(sdp);
@@ -146,7 +146,7 @@ mybool lavoratore_cucina_espleta_scelta() {
 	}
 
 	for(unsigned long long i = 0; i < n_sdp; ++i) {
-		printf("(%lld) Tavolo: %d, # ord: %d, # sc per ord: %d, prodotto: %s\n",
+		printf("(%llu) Tavolo: %d, # ord: %d, # sc per ord: %d, prodotto: %s\n",
 			i + 1, sdp[i].num_tavolo, sdp[i].num_ord_per_tavolo, 
 			sdp[i].num_sc_per_ord,  sdp[i].nome_prod);
 	}
@@ -184,7 +184,7 @@ mybool lavoratore_cucina_espleta_scelta() {
 
 	mybool is_ok = TRUE;
 	check_affected_stmt_rows(is_ok, stmt, 
-		"non è stato possibile espletare la scelta (opt: %lld)\n", opt);
+		"non è stato possibile espletare la scelta (opt: %llu)\n", opt);
 
 	good_free(sdp);
 	close_everything_stmt(stmt);

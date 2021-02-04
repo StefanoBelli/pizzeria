@@ -101,7 +101,7 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 	}
 	
 	for (unsigned long long i = 0; i < n_st; ++i) {
-		printf("(%lld) --> tavolo: %d, occupato: %s", i + 1,
+		printf("(%llu) --> tavolo: %d, occupato: %s", i + 1,
 			st[i].num_tavolo,
 			mybool_to_str(st[i].is_occupato));
 		
@@ -144,7 +144,7 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 
 	if(close) {
 		if(mysql_stmt_affected_rows(stmt) == 0) {
-			printf("Impossibile chiudere l'ordinazione (opt: %lld)\n", 
+			printf("Impossibile chiudere l'ordinazione (opt: %llu)\n", 
 					numt);
 			is_ok = FALSE;
 		}
@@ -172,7 +172,7 @@ mybool cameriere_prendi_scelta_per_ordinazione() {
 	}
 	
 	for (unsigned long long i = 0; i < n_st; ++i) {
-		printf("(%lld) --> tavolo: %d, occupato: %s", i + 1,
+		printf("(%llu) --> tavolo: %d, occupato: %s", i + 1,
 			st[i].num_tavolo,
 			mybool_to_str(st[i].is_occupato));
 		
@@ -232,11 +232,11 @@ static mybool __cameriere_get_scelte_del_cliente(MYSQL_TIME* data_ora_occ, scelt
 	scelta_del_cliente base;
 	memset(&base, 0, sizeof(scelta_del_cliente));
 
-	RESET_MYSQL_BIND(params);
-	set_inout_param_int(0, &base.num_ord_per_tavolo, params);
-	set_inout_param_int(1, &base.num_sc_per_ord, params);
-	set_out_param_string(2, base.nome_prod, params);
-	bind_result_stmt(stmt, params);
+	INIT_MYSQL_BIND(res_params, 3);
+	set_inout_param_int(0, &base.num_ord_per_tavolo, res_params);
+	set_inout_param_int(1, &base.num_sc_per_ord, res_params);
+	set_out_param_string(2, base.nome_prod, res_params);
+	bind_result_stmt(stmt, res_params);
 
 	begin_fetch_stmt(stmt);
 	memcpy((*sdc[i]).nome_prod, base.nome_prod, strlen(base.nome_prod));
@@ -258,7 +258,7 @@ mybool cameriere_aggiungi_ing_extra_per_scelta() {
 	}
 	
 	for (unsigned long long i = 0; i < n_st; ++i) {
-		printf("(%lld) --> tavolo: %d, occupato: %s", i + 1,
+		printf("(%llu) --> tavolo: %d, occupato: %s", i + 1,
 			st[i].num_tavolo,
 			mybool_to_str(st[i].is_occupato));
 		
@@ -371,7 +371,7 @@ static mybool __cameriere_effettua_consegna_perform(
 	checked_execute_stmt(stmt);
 
 	mybool is_ok = TRUE;
-	check_affected_stmt_rows(is_ok, stmt, "Impossibile effettuare la consegna (opt: %lld)\n", 
+	check_affected_stmt_rows(is_ok, stmt, "Impossibile effettuare la consegna (opt: %llu)\n", 
 							opt);
 
 	close_everything_stmt(stmt);
@@ -387,7 +387,7 @@ mybool cameriere_effettua_consegna() {
 	}
 
 	for(unsigned long long i = 0; i < n_esp; ++i) {
-		printf("(%lld) Tavolo %d, # ord: %d, # scelta: %d, prodotto: %s\n",
+		printf("(%llu) Tavolo %d, # ord: %d, # scelta: %d, prodotto: %s\n",
 			i + 1, esp[i].num_t, esp[i].num_ord_per_tavolo, 
 			esp[i].num_sc_per_ord, esp[i].nome_prod);
 	}

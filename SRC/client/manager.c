@@ -939,7 +939,7 @@ mybool manager_contrassegna_scontrino_pagato() {
 	}
 
 	for(unsigned long long i = 0; i < n_sct; ++i) {
-		printf("--> (%lld) Id fiscale: %d\n\t"
+		printf("--> (%llu) Id fiscale: %d\n\t"
 				"* Emissione: %d/%d/%d %d:%d:%d\n\t"
 				"* Costo totale: %lf\n", 
 				i + 1,
@@ -980,7 +980,7 @@ mybool manager_contrassegna_scontrino_pagato() {
 
 	mybool is_ok = TRUE;
 	check_affected_stmt_rows(is_ok, stmt, 
-		"non è stato possibile aggiornare lo scontrino indicato con %lld\n"
+		"non è stato possibile aggiornare lo scontrino indicato con %llu\n"
 		"\tRagioni:\n\t* Lo scontrino è gia"
 		" stato pagato\n", sct_idx);
 
@@ -1043,7 +1043,7 @@ static mybool __manager_get_tavoli_scontrino_stampabile(
 	bind_result_stmt(stmt, params);
 
 	begin_fetch_stmt(stmt);
-	memcpy(tss[i], &tss_base, sizeof(tss));
+	memcpy(tss[i], &tss_base, sizeof(tss_base));
 	memset(&tss_base, 0, sizeof(tss_base));
 	end_fetch_stmt();
 
@@ -1142,7 +1142,7 @@ mybool manager_stampa_scontrino_tavolo_occupato() {
 	}
 
 	for(unsigned long long i = 0; i < n_tss; ++i) {
-		printf("(%lld) Tavolo: %d\n", i + 1, tss[i].num_t);
+		printf("(%llu) Tavolo: %d\n", i + 1, tss[i].num_t);
 	}
 
 	unsigned long long opt;

@@ -37,6 +37,10 @@ static void reparse_and_change_user(role r, const char* users_dir) {
 		what = PIZZAIOLO_JSON_FILE;
 	else if(r == ROLE_CAMERIERE)
 		what = CAMERIERE_JSON_FILE;
+	else {
+		printf("*** (login.c:reparse_and_change_user) ERRORE: valore sconosciuto r=%d\n", r);
+		close_and_exit(EXIT_FAILURE);
+	}
 
 	char json_file_path[PATH_MAX + 2] = {0};
 	snprintf(json_file_path, PATH_MAX + 1, "%s/%s", users_dir, what);
