@@ -35,9 +35,35 @@ static mybool checked_execute_stmt_action(MYSQL_STMT* stmt) {
 	return TRUE;
 }
 
+static mybool __cameriere_agg_ing_extra_alla_scelta_perform(
+	MYSQL_TIME* data_ora_occ, int num_ord_per_tav, int num_sc_per_ord,
+	const char *ing, double qt_gr) {
+	
+	char nome_ing[21] = { 0 };
+	memcpy(nome_ing, ing , 20);
+
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call AggiungiIngExtraAllaScelta(?,?,?,?,?,?)");
+
+	INIT_MYSQL_BIND(params, 6);
+	set_inout_param_datetime(0, data_ora_occ, params);
+	set_inout_param_int(1, &num_ord_per_tav, params);
+	set_inout_param_int(2, &num_sc_per_ord, params);
+	set_in_param_string(3, nome_ing, params);
+	set_inout_param_double(4, &qt_gr, params);
+	set_in_param_string(5, cfg.username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	close_everything_stmt(stmt);
+	return TRUE;
+}
+
 static mybool __cameriere_get_situazione_tavolo(
 		situazione_tavolo** st, unsigned long long *n_st) {
-			
+
+	*n_st = 0;
+
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliDiCompetenza(?)");
 
 	INIT_MYSQL_BIND(params, 1);
@@ -61,7 +87,7 @@ static mybool __cameriere_get_situazione_tavolo(
 	bind_result_stmt(stmt, res);
 
 	begin_fetch_stmt(stmt);
-	memcpy(st[i], &myst, sizeof(myst));
+	memcpy(&(*st)[i], &myst, sizeof(myst));
     memset(&myst.data_ora_occupazione, 0, sizeof(myst.data_ora_occupazione));
     end_fetch_stmt();
 
@@ -71,6 +97,7 @@ static mybool __cameriere_get_situazione_tavolo(
 
 static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 	situazione_tavolo *st = NULL;
+
 	unsigned long long n_st;
 	
 	if (!__cameriere_get_situazione_tavolo(&st, &n_st)) {
@@ -90,16 +117,16 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 		}
 	}
 
-	unsigned long long numt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
-	int_form_field(fields, 0, "Opzione", 1, 19, &numt);
+	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
 	if(!checked_show_form_action(fields, 1)) {
 		good_free(st);
 		return FALSE;
 	}
 
-	if(numt < 1 || numt > n_st) {
+	if(opt < 1 || opt > n_st) {
 		puts("scelta non valida");
 		good_free(st);
 		return FALSE;
@@ -109,7 +136,7 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 		close ? "call ChiudiOrdinazione(?,?)" : "call PrendiOrdinazione(?,?)");
 
 	INIT_MYSQL_BIND(params, 2);
-	set_inout_param_datetime(0, &st[numt - 1].data_ora_occupazione, params);
+	set_inout_param_datetime(0, &st[opt - 1].data_ora_occupazione, params);
 	set_in_param_string(1, cfg.username, params);
 	bind_param_stmt(stmt, params);
 	if(!checked_execute_stmt_action(stmt)) {
@@ -122,7 +149,7 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 	if(close) {
 		if(mysql_stmt_affected_rows(stmt) == 0) {
 			printf("Impossibile chiudere l'ordinazione (opt: %llu)\n", 
-					numt);
+					opt);
 			is_ok = FALSE;
 		}
 	}
@@ -135,6 +162,8 @@ static mybool __cameriere_prendi_ordinazione_common(mybool close) {
 static mybool __cameriere_get_scelte_del_cliente(
 		MYSQL_TIME* data_ora_occ, scelta_del_cliente** sdc, 
 		unsigned long long *n_sdc) {
+
+	*n_sdc = 0;
 
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call OttieniSceltePerOrdinazione(?,?)");
 	INIT_MYSQL_BIND(params, 2);
@@ -157,9 +186,7 @@ static mybool __cameriere_get_scelte_del_cliente(
 	bind_result_stmt(stmt, res_params);
 
 	begin_fetch_stmt(stmt);
-	memcpy((*sdc[i]).nome_prod, base.nome_prod, strlen(base.nome_prod));
-	(*sdc[i]).num_ord_per_tavolo = base.num_ord_per_tavolo;
-	(*sdc[i]).num_sc_per_ord = base.num_sc_per_ord;
+	memcpy(&(*sdc)[i], &base, sizeof(base));
 	memset(&base, 0, sizeof(base));
 	end_fetch_stmt();
 
@@ -170,6 +197,8 @@ static mybool __cameriere_get_scelte_del_cliente(
 static mybool __cameriere_get_scelte_espletate(
 		scelta_del_cliente_espletata** esp, 
 		unsigned long long *n_esp) {
+	
+	*n_esp = 0;
 
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScelteEspletate(?)");
 	INIT_MYSQL_BIND(params, 1);
@@ -193,7 +222,7 @@ static mybool __cameriere_get_scelte_espletate(
 	bind_result_stmt(stmt, resp);
 
 	begin_fetch_stmt(stmt);
-	memcpy(esp[i], &sdc_esp, sizeof(sdc_esp));
+	memcpy(&(*esp)[i], &sdc_esp, sizeof(sdc_esp));
 	memset(&sdc_esp, 0, sizeof(sdc_esp));
 	end_fetch_stmt();
 
@@ -276,18 +305,18 @@ mybool cameriere_prendi_scelta_per_ordinazione() {
 		}
 	}
 
-	unsigned long long numt;
+	unsigned long long opt = 0;
 	char nome_prod[21] = { 0 };
 
 	form_field fields[2];
-	int_form_field(fields, 0, "Opzione", 1, 19, &numt);
+	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
 	string_form_field(fields, 1, "Prodotto", 1, 20, 20, nome_prod);
-	if(!checked_show_form_action(fields, 1)) {
+	if(!checked_show_form_action(fields, 2)) {
 		good_free(st);
 		return FALSE;
 	}
 
-	if(numt < 1 || numt > n_st) {
+	if(opt < 1 || opt > n_st) {
 		puts("scelta non valida");
 		good_free(st);
 		return FALSE;
@@ -295,7 +324,7 @@ mybool cameriere_prendi_scelta_per_ordinazione() {
 
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call PrendiSceltaPerOrd(?,?,?)");
 	INIT_MYSQL_BIND(params, 3);
-	set_inout_param_datetime(0, &st[numt - 1].data_ora_occupazione, params);
+	set_inout_param_datetime(0, &st[opt - 1].data_ora_occupazione, params);
 	set_in_param_string(1, nome_prod, params);
 	set_in_param_string(2, cfg.username, params);
 	bind_param_stmt(stmt, params);
@@ -330,31 +359,31 @@ mybool cameriere_aggiungi_ing_extra_per_scelta() {
 		}
 	}
 
-	unsigned long long numt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
-	int_form_field(fields, 0, "Opzione", 1, 19, &numt);
+	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
 	if(!checked_show_form_action(fields, 1)) {
 		good_free(st);
 		return FALSE;
 	}
 
-	if(numt < 1 || numt > n_st) {
+	if(opt < 1 || opt > n_st) {
 		puts("scelta non valida");
 		good_free(st);
 		return FALSE;
 	}
+
+	unsigned long long opt_minus_one = opt - 1;
 	
 	scelta_del_cliente* sdc = NULL;
 	unsigned long long n_sdc;
 	if(__cameriere_get_scelte_del_cliente(
-		&st[numt - 1].data_ora_occupazione, &sdc, &n_sdc) == FALSE) {
+		&st[opt_minus_one].data_ora_occupazione, &sdc, &n_sdc) == FALSE) {
 		
 		good_free(st);
 		return FALSE;
 	}
-
-	good_free(st);
 
 	if(n_sdc > 0) {
 		printf("--> Ordinazione %d\n", sdc[0].num_ord_per_tavolo);
@@ -364,8 +393,37 @@ mybool cameriere_aggiungi_ing_extra_per_scelta() {
    	 	}
 	}
 
+	double q_gr;
+	char nome_ing[21] = { 0 };
+	unsigned long long opt_1 = 0;
+
+	form_field fields_1[3];
+	int_form_field(fields_1, 0, "Opzione", 1, 19, &opt_1);
+	string_form_field(fields_1, 1, "Ingrediente", 1, 20, 20, nome_ing);
+	double_form_field(fields_1, 2, "Quantita (gr)", 1, 10, &q_gr);
+	if(!checked_show_form_action(fields_1, 3)) {
+		good_free(st);
+		good_free(sdc);
+		return FALSE;
+	}
+
+	if(opt_1 < 1 || opt_1 > n_sdc){
+		puts("scelta non valida");
+		good_free(st);
+		good_free(sdc);
+		return FALSE;
+	}
+
+	unsigned long long opt_1_minus_one = opt_1 - 1;
+
+	mybool is_ok = __cameriere_agg_ing_extra_alla_scelta_perform(
+		&st[opt_minus_one].data_ora_occupazione, 
+		sdc[opt_1_minus_one].num_ord_per_tavolo,
+		sdc[opt_1_minus_one].num_sc_per_ord, nome_ing, q_gr);
+
+	good_free(st);
 	good_free(sdc);
-	return TRUE;
+	return is_ok;
 }
 
 mybool cameriere_visualizza_scelte_espletate() {
@@ -400,7 +458,7 @@ mybool cameriere_effettua_consegna() {
 			esp[i].num_sc_per_ord, esp[i].nome_prod);
 	}
 
-	unsigned long long opt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
 	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
@@ -419,4 +477,26 @@ mybool cameriere_effettua_consegna() {
 
 	good_free(esp);
 	return is_ok;
+}
+
+mybool cameriere_visualizza_tavoli_assegnati() {
+	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliAssegnati(?)");
+	INIT_MYSQL_BIND(params, 1);
+	set_in_param_string(0, cfg.username, params);
+	bind_param_stmt(stmt, params);
+
+	checked_execute_stmt(stmt);
+
+	int num_t;
+
+	RESET_MYSQL_BIND(params);
+	set_inout_param_int(0, &num_t, params);
+	bind_result_stmt(stmt, params);
+
+	begin_fetch_stmt(stmt);
+	printf("%d\n", num_t);
+	end_fetch_stmt();
+
+	close_everything_stmt(stmt);
+	return TRUE;
 }

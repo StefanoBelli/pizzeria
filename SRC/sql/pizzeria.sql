@@ -320,11 +320,12 @@ begin
 		where
 			NumTavolo = (
 				select 
-					NumTavolo
-				from
-					Scontrino S join TavoloOccupato O
+					O.Tavolo 
+				from 
+					Scontrino S join TavoloOccupato O on 
+						O.DataOraOccupazione = S.TavoloOccupato 
 				where
-					O.DataOraOccupazione = NEW.TavoloOccupato);
+					S.TavoloOccupato = NEW.TavoloOccupato);
 	end if;
 end!
 
@@ -383,33 +384,44 @@ before insert on SceltaDelCliente for each row
 begin
 	declare nomeIng varchar(20);
 	declare cntDisp int;
+	declare shouldLeave boolean;
 	declare cur1 cursor for 
 		select 
-			Nome, NumDisponibiltaScorte
+			Nome, NumDisponibilitaScorte
 		from
 			ComposizioneProdotto join Ingrediente on
 				NomeIngrediente = Nome
 		where
 			NomeProdotto = NEW.ProdottoNelMenu;
+	declare continue handler for not found set shouldLeave = true;
+
+	set shouldLeave = false;
 
 	open cur1;
 
 	read_loop: loop
-
 		fetch cur1 into nomeIng, cntDisp;
+		
+		if not shouldLeave then
 
-		if cntDisp = 0 then
+			if cntDisp = 0 then
+				leave read_loop;
+			end if;
+
+			update
+				Ingrediente
+			set
+				NumDisponibilitaScorte = NumDisponibilitaScorte - 1
+			where
+				Nome = nomeIng;
+
+		else
+
 			leave read_loop;
+		
 		end if;
 
-		update
-			Ingrediente
-		set
-			NumDisponibilitaScorte = NumDisponibilitaScorte - 1
-		where
-			Nome = nomeIng;
-
-	end loop;
+	end loop read_loop;
 
 	close cur1;
 
@@ -467,7 +479,7 @@ end!
 create trigger AggiuntaAlProdottoAddCosto_AfterInsert
 after insert on AggiuntaAlProdotto for each row
 begin
-	set @costoAggIng = (
+	set @costoAlKg = (
 		select 
 			CostoAlKg 
 		from 
@@ -488,25 +500,38 @@ create trigger SceltaDelClienteCheckTotalComplete_AfterUpdate
 after update on SceltaDelCliente for each row
 begin
 	declare complDate datetime;
+	declare shouldLeave boolean;
 	declare cur1 cursor for select
 								DataOraCompletamento
 							from
 								SceltaDelCliente
 							where
 								TavoloOccupato = NEW.TavoloOccupato and
-								NumOrdinazionePerTavolo = NEW.NumOrdinazionePerTavolo and
-								NumSceltaPerOrdinazione = NEW.NumSceltaPerOrdinazione;
+								NumOrdinazionePerTavolo = NEW.NumOrdinazionePerTavolo;
+
+	declare continue handler for not found set shouldLeave = true;
+
+	set shouldLeave = false;
+
 	open cur1;
 
 	read_loop: loop
 
 		fetch cur1 into complDate;
 
-		if complDate is NULL then
+		if not shouldLeave then
+
+			if complDate is NULL then
+				leave read_loop;
+			end if;
+
+		else
+
 			leave read_loop;
+
 		end if;
 
-	end loop;
+	end loop read_loop;
 
 	close cur1;
 
@@ -518,6 +543,13 @@ begin
 		where
 			TavoloOccupato = NEW.TavoloOccupato and
 			NumOrdinazionePerTavolo = NEW.NumOrdinazionePerTavolo;
+
+		update
+			TavoloOccupato
+		set
+			IsServitoAlmenoUnaVolta = true
+		where
+			DataOraOccupazione = NEW.TavoloOccupato;
 	end if;
 end!
 
@@ -1115,7 +1147,8 @@ begin
 	into
 		numTotali;
 
-	return numTotali = numComplete;
+	return numTotali > 0 and numComplete > 0 and 
+		numTotali = numComplete;
 end!
 
 create procedure OttieniTavoliScontrinoStampabile()
@@ -1134,19 +1167,25 @@ begin
 	select
 		Tavolo, DataOraOccupazione
 	from
-		TavoloOccupato join Scontrino on
-			TavoloOccupato = DataOraOccupazione
+		TavoloOccupato
 	where
 		TutteOrdConcluse(DataOraOccupazione) and
-		IsPagato = false;
+		not exists (
+			select
+				*
+			from
+				Scontrino
+			where
+				TavoloOccupato = DataOraOccupazione);
 
 	commit;
 end!
 
 create function CalcoloCostoTotale(dataOraOcc datetime)
-returns int deterministic
+returns float deterministic
 begin
-	declare costoTmp int;
+	declare costoTmp float;
+	declare shouldLeave boolean;
 	declare cur1 cursor for 
 		select 
 			Costo 
@@ -1154,6 +1193,9 @@ begin
 			Ordinazione 
 		where 
 			TavoloOccupato = dataOraOcc;
+	declare continue handler for not found set shouldLeave = true;
+
+	set shouldLeave = false;
 
 	set @costoTotale = 0;
 
@@ -1161,8 +1203,18 @@ begin
 
 	read_loop: loop
 		fetch cur1 into costoTmp;
-		set @costoTotale = @costoTotale + costoTmp;
-	end loop;
+
+		if not shouldLeave then
+
+			set @costoTotale = @costoTotale + costoTmp;
+
+		else
+
+			leave read_loop;
+
+		end if;
+
+	end loop read_loop;
 
 	close cur1;
 
@@ -1199,7 +1251,7 @@ begin
 
 	insert into
 		Scontrino(
-			DataOraEmisione, 
+			DataOraEmissione, 
 			CostoTotale, 
 			TavoloOccupato)
 	values
@@ -1210,8 +1262,7 @@ begin
 		Sdc.NumSceltaPerOrdinazione as NumScelta,
 		Sdc.ProdottoNelMenu as Prodotto,
 		Ap.Ingrediente as IngredienteExtra,
-		Ap.QuantitaInGr as QuantitaInGr,
-		Ord.Costo as Costo
+		Ap.QuantitaInGr as QuantitaInGr
 	from
 		(Ordinazione Ord join SceltaDelCliente Sdc on
 			Ord.TavoloOccupato = Sdc.TavoloOccupato and
@@ -1244,7 +1295,7 @@ begin
 	set @current_time = now();
 
 	start transaction;
-
+	
 	select
 		Ta.NumTavolo as NumTavolo, 
 		Ta.IsOccupato as IsOccupato, 
@@ -1257,14 +1308,52 @@ begin
 				Tu.Tavolo = Ta.NumTavolo) join Turno T on
 					T.DataOraInizio = Tu.Turno
 	where
-		Tu.Cameriere = username and 
-		T.DataOraInizio <= @current_time and 
+		Tu.Cameriere = username and
+		T.DataOraInizio <= @current_time and
+		@current_time <= T.DataOraFine and
+		Ta.IsOccupato = true and
+		not exists (
+			select
+				*
+			from
+				Scontrino
+			where
+				TavoloOccupato = Tocc.DataOraOccupazione and
+				IsPagato = true);
+		
+	commit;
+end!
+
+create procedure OttieniTavoliAssegnati(in username varchar(10))
+begin
+	declare exit handler for sqlexception
+	begin
+		rollback;
+		resignal;
+	end;
+
+	set transaction read only;
+	set transaction isolation level read committed;
+
+	set @current_time = now();
+
+	start transaction;
+
+	select
+		Ta.NumTavolo as NumTavolo
+	from
+		(Tavolo Ta join TurnoAssegnato Tu on
+			Ta.NumTavolo = Tu.Tavolo) join Turno T on
+				Tu.Turno = T.DataOraInizio
+	where
+		Tu.Cameriere = username and
+		T.DataOraInizio <= @current_time and
 		@current_time <= T.DataOraFine;
 
 	commit;
 end!
 
-create function IsThisMyTable(dataOraOcc datetime, usern varchar(10))
+create function CanWorkOnTable(dataOraOcc datetime, usern varchar(10))
 returns boolean deterministic
 begin
 	set @current_time = now();
@@ -1300,19 +1389,21 @@ begin
 
 	start transaction;
 
-	if IsThisMyTable(dataOraOcc, usern) then
-		insert into
-			Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo)
-		values
-			(dataOraOcc, (select 
+	if CanWorkOnTable(dataOraOcc, usern) then
+		set @counter = (select 
 							count(*) 
 						from 
 							Ordinazione 
 						where
-							TavoloOccupato = dataOraOcc) + 1);
+							TavoloOccupato = dataOraOcc) + 1;
+
+		insert into
+			Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo)
+		values
+			(dataOraOcc, @counter);
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1329,26 +1420,29 @@ begin
 	set transaction isolation level read committed;
 
 	start transaction;
-
-	if IsThisMyTable(dataOraOcc, usern) then
-		update
-			Ordinazione
-		set
-			DataOraRichiesta = now()
-		where
-			DataOraOccupazione = dataOraOcc and
-			DataOraRichiesta is NULL and
-			DataOraCompletamento is NULL and
-			NumOrdinazionePerTavolo = (
+	
+	if CanWorkOnTable(dataOraOcc, usern) then
+		set @numOrd =(
 						select 
 							count(*) 
 						from 
 							Ordinazione 
 						where
-							TavoloOccupato = dataOraOcc);
+							TavoloOccupato = dataOraOcc
+		);
+
+		update
+			Ordinazione
+		set
+			DataOraRichiesta = now()
+		where
+			TavoloOccupato = dataOraOcc and
+			DataOraRichiesta is NULL and
+			DataOraCompletamento is NULL and
+			NumOrdinazionePerTavolo = @numOrd;
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1369,7 +1463,7 @@ begin
 
 	start transaction;
 
-	if IsThisMyTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern) then
 		set @numOrd = (
 			select
 				NumOrdinazionePerTavolo
@@ -1384,6 +1478,13 @@ begin
 				set message_text = "Ordinazione chiusa";
 		end if;
 
+		set @numSc = (select 
+							count(*) 
+						from 
+							SceltaDelCliente 
+						where 
+							TavoloOccupato = dataOraOcc and 
+							NumOrdinazionePerTavolo = @numOrd) + 1;
 		insert into 
 			SceltaDelCliente(TavoloOccupato, 
 							NumOrdinazionePerTavolo, 
@@ -1392,17 +1493,11 @@ begin
 		values(
 			dataOraOcc,
 			@numOrd,
-			(select 
-				count(*) 
-			from 
-				SceltaDelCliente 
-			where 
-				TavoloOccupato = dataOraOcc and 
-				NumOrdinazionePerTavolo = @numOrd) + 1,
+			@numSc,
 			nomeProd);
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1421,7 +1516,7 @@ begin
 
 	start transaction;
 
-	if IsThisMyTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern) then
 		select
 			Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
 			Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione, 
@@ -1435,7 +1530,7 @@ begin
 			Ord.DataOraRichiesta is NULL;
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1459,7 +1554,7 @@ begin
 
 	start transaction;
 
-	if IsThisMyTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern) then
 		insert into
 			AggiuntaAlProdotto(
 				TavoloOccupato,
@@ -1477,7 +1572,7 @@ begin
 			);
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1497,10 +1592,10 @@ begin
 		Tavolo,
 		ProdottoNelMenu
 	from
-		SceltaDelCliente join TavoloOccuapato on
+		SceltaDelCliente join TavoloOccupato on
 			TavoloOccupato = DataOraOccupazione
 	where
-		IsThisMyTable(TavoloOccupato, usern) and
+		CanWorkOnTable(TavoloOccupato, usern) and
 		DataOraEspletata is not NULL and
 		DataOraCompletamento is NULL;
 	
@@ -1519,24 +1614,22 @@ begin
 		resignal;
 	end;
 
-	set transaction read only;
 	set transaction isolation level read committed;
 
 	start transaction;
 
-	if IsThisMyTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern) then
 		update
 			SceltaDelCliente
 		set
-			DataOraCompletamento = now(),
-			IsServitoAlmenoUnaVolta = true
+			DataOraCompletamento = now()
 		where
 			TavoloOccupato = dataOraOcc and
 			NumOrdinazionePerTavolo = numOrd and
 			NumSceltaPerOrdinazione = numScelta;
 	else
 		signal sqlstate '45011'
-			set message_text = "Questo non è il tuo tavolo!";
+			set message_text = "Non è possibile selezionare il tavolo (ad esempio, non è occupato al momento)";
 	end if;
 
 	commit;
@@ -1557,7 +1650,7 @@ begin
 
 	select
 		Sdc.TavoloOccupato as TavoloOccupato,
-		Tocc.NumTavolo as NumTavolo,
+		Tocc.Tavolo as NumTavolo,
 		Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
 		Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione,
 		Sdc.ProdottoNelMenu as ProdottoNelMenu
@@ -1683,6 +1776,9 @@ begin
 	set
 		DataOraEspletata = now()
 	where
+		TavoloOccupato = dataOraOcc and
+		NumOrdinazionePerTavolo = numOrd and
+		NumSceltaPerOrdinazione = numSc and
 		DataOraEspletata is NULL and
 		LavoratoreCucina = usern;
 
@@ -1703,12 +1799,12 @@ begin
 	start transaction;
 
 	select
-		Tocc.NumTavolo as Tavolo,
+		Tocc.Tavolo as Tavolo,
 		Sdc.NumOrdinazionePerTavolo as NumOrdPerTavolo,
-		Sdc.NumSceltaPerTavolo as NumSceltaPerOrd,
+		Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrd,
 		Sdc.ProdottoNelMenu as Prodotto,
-		Sdc.Ingrediente as IngredienteExtra,
-		Sdc.QuantitaInGr as QuantitaIngredienteExtraInGr
+		Ap.Ingrediente as IngredienteExtra,
+		Ap.QuantitaInGr as QuantitaIngredienteExtraInGr
 	from
 		((SceltaDelCliente Sdc join ProdottoNelMenu Prod on
 			Sdc.ProdottoNelMenu = Prod.Nome) left join AggiuntaAlProdotto Ap on
@@ -1777,6 +1873,7 @@ grant execute on procedure OttieniSceltePerOrdinazione to 'cameriere';
 grant execute on procedure AggiungiIngExtraAllaScelta to 'cameriere';
 grant execute on procedure OttieniScelteEspletate to 'cameriere';
 grant execute on procedure EffettuaConsegna to 'cameriere';
+grant execute on procedure OttieniTavoliAssegnati to 'cameriere';
 
 grant execute on procedure OttieniScelteDaPreparare to 'pizzaiolo';
 grant execute on procedure PrendiInCaricoScelta to 'pizzaiolo';

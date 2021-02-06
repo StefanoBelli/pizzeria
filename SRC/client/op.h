@@ -85,6 +85,7 @@ mybool cameriere_prendi_scelta_per_ordinazione();
 mybool cameriere_aggiungi_ing_extra_per_scelta();
 mybool cameriere_visualizza_scelte_espletate();
 mybool cameriere_effettua_consegna();
+mybool cameriere_visualizza_tavoli_assegnati();
 
 mybool lavoratore_cucina_visualizza_scelte_da_preparare();
 mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare();

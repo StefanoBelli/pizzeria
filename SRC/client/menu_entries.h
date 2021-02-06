@@ -6,7 +6,7 @@
 
 #define ENTRIES_LEN_MANAGER 27
 #define ENTRIES_LEN_BARMAN_E_PIZZAIOLO 5
-#define ENTRIES_LEN_CAMERIERE 7
+#define ENTRIES_LEN_CAMERIERE 8
 
 menu_entry entries_manager[ENTRIES_LEN_MANAGER] = 
 {
@@ -146,6 +146,10 @@ menu_entry entries_barman_e_pizzaiolo[ENTRIES_LEN_BARMAN_E_PIZZAIOLO] =
 
 menu_entry entries_cameriere[ENTRIES_LEN_CAMERIERE] = 
 {
+    {
+        "Visualizza TUTTI i tavoli assegnati",
+        cameriere_visualizza_tavoli_assegnati
+    },
     {
         "Visualizza situazione tavoli assegnati",
         cameriere_visualizza_situazione_tavoli

@@ -61,6 +61,8 @@ static mybool checked_execute_stmt_action(MYSQL_STMT *stmt) {
 }
 
 static mybool __manager_get_tavoli(tavolo **out_t, unsigned long long *n) {
+	*n = 0;
+	
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoli()");
 	checked_execute_stmt(stmt);
 
@@ -77,7 +79,7 @@ static mybool __manager_get_tavoli(tavolo **out_t, unsigned long long *n) {
 	good_malloc(*out_t , tavolo, *n);
 
 	begin_fetch_stmt(stmt);
-	memcpy(out_t[i], &t, sizeof(t));
+	memcpy(&(*out_t)[i], &t, sizeof(t));
 	end_fetch_stmt();
 
 	close_everything_stmt(stmt);
@@ -196,6 +198,9 @@ static mybool __manager_get_turni(
 		MYSQL_TIME** out_inizio, 
 		MYSQL_TIME** out_fine, 
 		unsigned long long* n) {
+
+	*n = 0;
+
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTurni()");
 	checked_execute_stmt(stmt);
 	
@@ -220,6 +225,8 @@ static mybool __manager_get_turni(
 }
 
 static mybool __manager_get_utenti(utente** out_u, unsigned long long *n) {
+	*n = 0;
+
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniUtenti()");
 	checked_execute_stmt(stmt);
 
@@ -241,7 +248,7 @@ static mybool __manager_get_utenti(utente** out_u, unsigned long long *n) {
     good_malloc(*out_u, utente, *n);
 
     begin_fetch_stmt(stmt);
-	memcpy(out_u[i], &u, sizeof(u));
+	memcpy(&(*out_u)[i], &u, sizeof(u));
 	memset(&u, 0, sizeof(u));
 	end_fetch_stmt();
 
@@ -315,6 +322,8 @@ static mybool __manager_visualizza_turni_common_resultset(const char* query) {
 #undef NE_TIME
 
 static mybool __manager_get_scontrini_non_pagati(scontrino** scont, unsigned long long *n_scont) {
+	*n_scont = 0;
+
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniScontriniNonPagati()");
 	checked_execute_stmt(stmt);
 
@@ -345,16 +354,14 @@ static void __manager_stampa_scontrino_tavolo_occupato_print(MYSQL_STMT* stmt) {
 	char nome_prod[21] = { 0 };
 	char nome_ing[21] = { 0 };
 	double qt_in_gr;
-	double costo;
 	my_bool ing_is_null;
 
-	INIT_MYSQL_BIND(params, 6);
+	INIT_MYSQL_BIND(params, 5);
 	set_inout_param_int(0, &num_ord, params);
 	set_inout_param_int(1, &num_sc_per_ord, params);
 	set_out_param_string(2, nome_prod, params);
 	set_out_param_maybe_null_string(3, nome_ing, &ing_is_null, params);
 	set_inout_param_double(4, &qt_in_gr, params);
-	set_inout_param_double(5, &costo, params);
 	bind_result_stmt(stmt, params);
 
 	begin_fetch_stmt(stmt);
@@ -364,8 +371,6 @@ static void __manager_stampa_scontrino_tavolo_occupato_print(MYSQL_STMT* stmt) {
 	if(!ing_is_null) {
 		printf("\t* Extra ingrediente: %s (%lf gr)\n", nome_ing, qt_in_gr);
 	}
-
-	printf("     Costo: %lf\n", costo);
 	end_fetch_stmt();
 
 	next_result_stmt(stmt);
@@ -395,6 +400,8 @@ static void __manager_stampa_scontrino_tavolo_occupato_print(MYSQL_STMT* stmt) {
 static mybool __manager_get_tavoli_scontrino_stampabile(
 		tavolo_scontrino_stampabile** tss, 
 		unsigned long long *n_tss) {
+	
+	*n_tss = 0;
 
 	MYSQL_STMT *stmt = init_and_prepare_stmt("call OttieniTavoliScontrinoStampabile()");
 
@@ -407,12 +414,12 @@ static mybool __manager_get_tavoli_scontrino_stampabile(
 	memset(&tss_base, 0, sizeof(tss_base));
 
 	INIT_MYSQL_BIND(params, 2);
-	set_inout_param_datetime(0, &tss_base.data_ora_occupazione, params);
-	set_inout_param_int(1, &tss_base.num_t, params);
+	set_inout_param_int(0, &tss_base.num_t, params);
+	set_inout_param_datetime(1, &tss_base.data_ora_occupazione, params);
 	bind_result_stmt(stmt, params);
 
 	begin_fetch_stmt(stmt);
-	memcpy(tss[i], &tss_base, sizeof(tss_base));
+	memcpy(&(*tss)[i], &tss_base, sizeof(tss_base));
 	memset(&tss_base, 0, sizeof(tss_base));
 	end_fetch_stmt();
 
@@ -838,6 +845,8 @@ mybool manager_assegna_turno() {
 	mybool is_ok = FALSE;
 
 	__assegna_turno_choice choice;
+	memset(&choice, 0, sizeof(choice));
+
 	if((is_ok = __manager_assegna_turno_readchoice(&choice))) {
 		if((choice.idx_tavolo < 1 || choice.idx_tavolo > n_ta) ||
 			(choice.idx_turno < 1 || choice.idx_turno > n_tu) ||
@@ -948,7 +957,7 @@ mybool manager_visualizza_assoc_prodotti_ingredienti() {
 	set_out_param_string(1, nome_ing, params);
 	bind_result_stmt(stmt, params);
 
-	char nome_prod_cur[21];
+	char nome_prod_cur[21] = { 0 };
 
 	begin_fetch_stmt(stmt);
 	if(strcmp(nome_prod_cur, nome_prod)) {
@@ -1052,15 +1061,16 @@ mybool manager_contrassegna_scontrino_pagato() {
 				sct[i].costo_totale);
     }
 
-	unsigned long long sct_idx;
+	unsigned long long opt = 0;
+
 	form_field fields[1];
-	int_form_field(fields, 0, "Scontrino", 1, 19, &sct_idx);
+	int_form_field(fields, 0, "Scontrino", 1, 19, &opt);
 	if(checked_show_form_action(fields, 1) == FALSE) {
 		good_free(sct);
 		return FALSE;
 	}
 
-	if(sct_idx < 1 || sct_idx > n_sct) {
+	if(opt < 1 || opt > n_sct) {
 		puts("opzione non valida");
 		good_free(sct);
 		return FALSE;
@@ -1069,7 +1079,7 @@ mybool manager_contrassegna_scontrino_pagato() {
 	MYSQL_STMT* stmt = init_and_prepare_stmt("call ContrassegnaScontrinoPagato(?)");
 
 	INIT_MYSQL_BIND(params, 1);
-	set_inout_param_int(0, &(sct[sct_idx - 1].id_fiscale), params);
+	set_inout_param_int(0, &(sct[opt - 1].id_fiscale), params);
 	bind_param_stmt(stmt, params);
 
 	if(checked_execute_stmt_action(stmt) == FALSE) {
@@ -1081,7 +1091,7 @@ mybool manager_contrassegna_scontrino_pagato() {
 	check_affected_stmt_rows(is_ok, stmt, 
 		"non è stato possibile aggiornare lo scontrino indicato con %llu\n"
 		"\tRagioni:\n\t* Lo scontrino è gia"
-		" stato pagato\n", sct_idx);
+		" stato pagato\n", opt);
 
 	good_free(sct);
 	close_everything_stmt(stmt);
@@ -1149,7 +1159,7 @@ mybool manager_stampa_scontrino_tavolo_occupato() {
 		printf("(%llu) Tavolo: %d\n", i + 1, tss[i].num_t);
 	}
 
-	unsigned long long opt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
 	int_form_field(fields, 0, "Opzione", 1, 19, &opt);

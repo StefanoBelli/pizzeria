@@ -24,6 +24,8 @@ static mybool checked_execute_stmt_action(MYSQL_STMT* stmt) {
 static mybool __lavoratore_cucina_get_scelte_da_preparare(
 		mybool da_esp, scelta_da_preparare **sdp_out, unsigned long long *n_sdp_out) {
 
+	*n_sdp_out = 0;
+
 	MYSQL_STMT* stmt = init_and_prepare_stmt(
 		da_esp ? "call OttieniSceltePreseInCaricoNonEspletate(?)" : "call OttieniScelteDaPreparare()");
     
@@ -51,7 +53,7 @@ static mybool __lavoratore_cucina_get_scelte_da_preparare(
 	bind_result_stmt(stmt, params);
 
 	begin_fetch_stmt(stmt);
-	memcpy(sdp_out[i], &sdp, sizeof(sdp));
+	memcpy(&(*sdp_out)[i], &sdp, sizeof(sdp));
 	memset(&sdp, 0, sizeof(sdp));
 	end_fetch_stmt();
 
@@ -89,7 +91,7 @@ mybool lavoratore_cucina_prendi_in_carico_scelta_da_preparare() {
 			sdp[i].num_sc_per_ord,  sdp[i].nome_prod);
 	}
 	
-	unsigned long long opt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
 	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
@@ -143,7 +145,7 @@ mybool lavoratore_cucina_espleta_scelta() {
 			sdp[i].num_sc_per_ord,  sdp[i].nome_prod);
 	}
 	
-	unsigned long long opt;
+	unsigned long long opt = 0;
 
 	form_field fields[1];
 	int_form_field(fields, 0, "Opzione", 1, 19, &opt);
@@ -160,7 +162,7 @@ mybool lavoratore_cucina_espleta_scelta() {
 
 	int opt_minus_one = opt - 1;
 
-	MYSQL_STMT* stmt = init_and_prepare_stmt("call EspletaScelta(?,?,?,?)");
+	MYSQL_STMT* stmt = init_and_prepare_stmt("call EspletaSceltaPresaInCarico(?,?,?,?)");
 
 	INIT_MYSQL_BIND(params, 4);
 	set_inout_param_datetime(0, &sdp[opt_minus_one].tavolo_occupato, params);
@@ -208,6 +210,7 @@ mybool lavoretore_cucina_visualizza_info_scelte_prese_in_carico() {
 	set_out_param_string(3, nome_prod, params);
 	set_out_param_maybe_null_string(4, nome_ing, &ing_is_null, params);
 	set_inout_param_double(5, &qt_in_gr, params);
+	bind_result_stmt(stmt, params);
 
 	begin_fetch_stmt(stmt);
 	printf("--> Tavolo: %d, # ord: %d, # sc per ord: %d\n\t"
