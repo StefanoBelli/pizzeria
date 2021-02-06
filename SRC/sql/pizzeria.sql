@@ -1887,9 +1887,12 @@ grant execute on procedure OttieniSceltePreseInCaricoNonEspletate to 'barman';
 grant execute on procedure EspletaSceltaPresaInCarico to 'barman';
 grant execute on procedure OttieniInfoProdottiDiScelteInCarico to 'barman';
 
--- fine
+-- fine --
 
-call RegistraUtente("ste","Stefano","Belli", "Cave", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "ste123", 1);
-call RegistraUtente("pippo", "Pippo", "Baudo", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "tanto", 2);
-call RegistraUtente("titti", "Titti", "Boh", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "zitti", 3);
-call RegistraUtente("lollo", "Lollo", "Boh", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "culo", 4);
+------------------------------------------------------------
+-- Utenti di test. Commentarli per evitarne la creazione. --
+------------------------------------------------------------
+call RegistraUtente("pizzamanag","Manager","Principale", "Roma", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "manage", 1);
+call RegistraUtente("pizzacamer", "Cameriere", "Cognome", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "came", 2);
+call RegistraUtente("pizzapizza", "Pizza", "Yolo", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "pizza", 3);
+call RegistraUtente("pizzabarma", "Bar", "Man", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "bar", 4);
