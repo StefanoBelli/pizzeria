@@ -256,12 +256,12 @@ begin
 
 	select
 		count(*)
+	into
+		overlapCount
 	from
 		Turno
 	where
-		DataOraInizio <= NEW.DataOraFine and DataOraFine >= NEW.DataOraInizio
-	into
-		overlapCount;
+		DataOraInizio <= NEW.DataOraFine and DataOraFine >= NEW.DataOraInizio;
 
 	if overlapCount > 0 then
 		signal sqlstate '45003'
@@ -276,12 +276,12 @@ begin
 
 	select
 		Ruolo
+	into
+		newUserRole
 	from
 		UtenteLavoratore
 	where
-		Username = NEW.Cameriere
-	into
-		newUserRole;
+		Username = NEW.Cameriere;
 	
 	if newUserRole <> 2 then
 		signal sqlstate '45002'
@@ -296,12 +296,12 @@ begin
 
 	select
 		IsServitoAlmenoUnaVolta
+	into
+		isServito
 	from
 		TavoloOccupato T
 	where
-		T.DataOraOccupazione = NEW.TavoloOccupato
-	into
-		isServito;
+		T.DataOraOccupazione = NEW.TavoloOccupato;
 
 	if isServito = false then
 		signal sqlstate '45004'
@@ -456,12 +456,12 @@ begin
 
 	select
 		NumDisponibilitaScorte
+	into
+		numDispScorte
 	from
 		Ingrediente
 	where
-		Nome = NEW.Ingrediente
-	into
-		numDispScorte;
+		Nome = NEW.Ingrediente;
 
 	if numDispScorte = 0 then
 		signal sqlstate '45013'
@@ -567,12 +567,12 @@ begin
 
 	select
 		Ruolo
+	into
+		userRole
 	from
 		UtenteLavoratore
 	where
-		Username = usern and Passwd = SHA1(pwd)
-	into
-		userRole;
+		Username = usern and Passwd = SHA1(pwd);
 
 	commit;
 end!
@@ -1135,23 +1135,23 @@ begin
 
 	select
 		count(*)
+	into
+		numComplete
 	from
 		Ordinazione
 	where
 		TavoloOccupato = dataOraOcc and
 		DataOraRichiesta is not NULL and
-		DataOraCompletamento is not NULL
-	into
-		numComplete;
+		DataOraCompletamento is not NULL;
 
 	select
 		count(*)
+	into
+		numTotali
 	from
 		Ordinazione
 	where
-		TavoloOccupato = dataOraOcc
-	into
-		numTotali;
+		TavoloOccupato = dataOraOcc;
 
 	return numTotali > 0 and numComplete > 0 and 
 		numTotali = numComplete;
