@@ -1854,10 +1854,18 @@ grant execute on procedure OttieniInfoProdottiDiScelteInCarico to 'barman';
 
 -- fine --
 
+--
 --------------------
 -- Utenti di test --
 --------------------
-call RegistraUtente("pizzamanag","Manager","Principale", "Roma", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "manage", 1);
-call RegistraUtente("pizzacamer", "Cameriere", "Cognome", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "came", 2);
-call RegistraUtente("pizzapizza", "Pizza", "Yolo", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "pizza", 3);
-call RegistraUtente("pizzabarma", "Bar", "Man", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "bar", 4);
+--
+-- Username: pizzamanag ;;; Password: manage
+-- Username: pizzacamer ;;; Password: came
+-- Username: pizzapizza ;;; Password: pizza
+-- Username: pizzabarma ;;; Password: bar
+--
+
+-- call RegistraUtente("pizzamanag","Manager","Principale", "Roma", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "manage", 1);
+-- call RegistraUtente("pizzacamer", "Cameriere", "Cognome", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "came", 2);
+-- call RegistraUtente("pizzapizza", "Pizza", "Yolo", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "pizza", 3);
+-- call RegistraUtente("pizzabarma", "Bar", "Man", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "bar", 4);

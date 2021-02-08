@@ -8,13 +8,22 @@ LIBS = $(shell mysql_config --libs)
 OUT = pizzeria
 
 all:
-	$(CC) $(SRC) $(CFLAGS) $(LIBS) -o $(OUT)
+	$(CC) $(SRC) $(CFLAGS) $(LIBS) -o $(OUT) && echo ok || echo fail
+	@echo "***"
+	@echo per runnare: ./$(OUT) --username USERNAME --password PASSWORD
+	@echo "***"
 
 debug:
-	$(CC) $(SRC) $(CFLAGS_DEBUG) $(LIBS) -o $(OUT)
+	$(CC) $(SRC) $(CFLAGS_DEBUG) $(LIBS) -o $(OUT) && echo ok || echo fail
+	@echo "***"
+	@echo per runnare: ./$(OUT) --username USERNAME --password PASSWORD
+	@echo "***"
 
 san:
-	$(CC) $(SRC) $(CFLAGS_SAN) $(LIBS) -o $(OUT)
+	$(CC) $(SRC) $(CFLAGS_SAN) $(LIBS) -o $(OUT) && echo ok || echo fail
+	@echo "***"
+	@echo per runnare: ./$(OUT) --username USERNAME --password PASSWORD
+	@echo "***"
 
 clean:
 	rm $(OUT)
