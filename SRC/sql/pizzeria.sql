@@ -556,7 +556,7 @@ end!
 create procedure TentaLogin(in usern varchar(10), in pwd varchar(45), out userRole tinyint)
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	set userRole = 0;
 	
@@ -591,8 +591,6 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
-
 	start transaction;
 
 	insert into
@@ -622,7 +620,7 @@ end!
 
 create procedure RipristinoPassword(in usern varchar(10), in pwd varchar(45))
 begin
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -644,8 +642,6 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
-
 	start transaction;
 
 	insert into 
@@ -666,8 +662,6 @@ begin
 		rollback;
 		resignal;
 	end;
-
-	set transaction isolation level read uncommitted;
 
 	start transaction;
 
@@ -691,8 +685,6 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
-
 	start transaction;
 
 	insert into
@@ -710,8 +702,6 @@ begin
 		rollback;
 		resignal;
 	end;
-
-	set transaction isolation level read uncommitted;
 
 	start transaction;
 
@@ -731,8 +721,6 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
-
 	start transaction;
 
 	insert into 
@@ -751,7 +739,7 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -771,7 +759,7 @@ begin
 		resignal;
 	end;
 	
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -791,7 +779,7 @@ begin
 		resignal;
 	end;
 	
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -806,7 +794,7 @@ end!
 create procedure OttieniTurni()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -823,7 +811,7 @@ end!
 create procedure OttieniUtenti()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -838,10 +826,10 @@ end!
 
 create procedure OttieniTavoli()
 begin
-	set transaction read only;
-	set transaction isolation level read uncommitted;
-
 	set @current_time = now();
+
+	set transaction read only;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -865,7 +853,7 @@ end!
 create procedure OttieniTurniAssegnati()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -885,10 +873,10 @@ end!
 
 create procedure OttieniTurnoAttuale()
 begin
-	set transaction read only;
-	set transaction isolation level read uncommitted;
-
 	set @current_time = now();
+
+	set transaction read only;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -916,8 +904,6 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
-
 	start transaction;
 
 	insert into 
@@ -931,7 +917,7 @@ end!
 create procedure OttieniMenu()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -948,7 +934,7 @@ end!
 create procedure OttieniComposizioneProdotto()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -963,7 +949,7 @@ end!
 create procedure OttieniIngredienti()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -977,7 +963,7 @@ end!
 
 create procedure IncDispIngrediente(in nomeIng varchar(20), in incBy int)
 begin
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -1033,7 +1019,7 @@ end!
 create procedure OttieniScontriniNonPagati()
 begin
 	set transaction read only;
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -1055,7 +1041,7 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read uncommitted;
+	set transaction isolation level read committed;
 
 	start transaction;
 
@@ -1083,6 +1069,7 @@ begin
 	set @current_time = now();
 
 	set transaction isolation level repeatable read;
+
 	start transaction;
 
 	set @numTavoloAdatto = (
@@ -1153,14 +1140,8 @@ end!
 
 create procedure OttieniTavoliScontrinoStampabile()
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
 	set transaction read only;
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 
 	start transaction;
 
@@ -1229,7 +1210,7 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 
 	start transaction;
 
@@ -1290,9 +1271,10 @@ end!
 
 create procedure OttieniTavoliDiCompetenza(in username varchar(10))
 begin
-	set transaction read only;
-
 	set @current_time = now();
+
+	set transaction read only;
+	set transaction isolation level read committed;
 
 	start transaction;
 	
@@ -1326,16 +1308,10 @@ end!
 
 create procedure OttieniTavoliAssegnati(in username varchar(10))
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
+	set @current_time = now();
 
 	set transaction read only;
 	set transaction isolation level read committed;
-
-	set @current_time = now();
 
 	start transaction;
 
@@ -1371,7 +1347,8 @@ begin
 		where
 			TuAs.Cameriere = usern and 
 			Tocc.DataOraOccupazione = dataOraOcc) then
-			return true;
+			
+		return true;
 	end if;
 
 	return false;
@@ -1417,7 +1394,7 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 
 	start transaction;
 	
@@ -1459,7 +1436,7 @@ begin
 		resignal;
 	end;
 
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 
 	start transaction;
 
@@ -1505,12 +1482,6 @@ end!
 
 create procedure OttieniSceltePerOrdinazione(in dataOraOcc datetime, in usern varchar(10))
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
 	set transaction read only;
 	set transaction isolation level read committed;
 
@@ -1581,7 +1552,7 @@ end!
 create procedure OttieniScelteEspletate(in usern varchar(10))
 begin
 	set transaction read only;
-	set transaction isolation level read committed;
+	set transaction isolation level repeatable read;
 
 	start transaction;
 
@@ -1637,12 +1608,6 @@ end!
 
 create procedure OttieniScelteDaPreparare()
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
 	set transaction read only;
 	set transaction isolation level read committed;
 
@@ -1727,12 +1692,6 @@ end!
 
 create procedure OttieniSceltePreseInCaricoNonEspletate(in usern varchar(10))
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
 	set transaction read only;
 	set transaction isolation level read committed;
 
@@ -1787,12 +1746,6 @@ end!
 
 create procedure OttieniInfoProdottiDiScelteInCarico(in usern varchar(10))
 begin
-	declare exit handler for sqlexception
-	begin
-		rollback;
-		resignal;
-	end;
-
 	set transaction read only;
 	set transaction isolation level read committed;
 
@@ -1889,10 +1842,10 @@ grant execute on procedure OttieniInfoProdottiDiScelteInCarico to 'barman';
 
 -- fine --
 
-------------------------------------------------------------
--- Utenti di test. Commentarli per evitarne la creazione. --
-------------------------------------------------------------
-call RegistraUtente("pizzamanag","Manager","Principale", "Roma", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "manage", 1);
-call RegistraUtente("pizzacamer", "Cameriere", "Cognome", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "came", 2);
-call RegistraUtente("pizzapizza", "Pizza", "Yolo", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "pizza", 3);
-call RegistraUtente("pizzabarma", "Bar", "Man", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "bar", 4);
+--------------------
+-- Utenti di test --
+--------------------
+-- call RegistraUtente("pizzamanag","Manager","Principale", "Roma", '1999-10-08',"Roma", "XXXXYYYYZZZZTTTT", "manage", 1);
+-- call RegistraUtente("pizzacamer", "Cameriere", "Cognome", "Roma", '2002-01-10', "Milano", "ABCDEFGHILMN0123", "came", 2);
+-- call RegistraUtente("pizzapizza", "Pizza", "Yolo", "Milano", '2003-01-20', "Torino", "ZZZZYYYYTTTTXXXX", "pizza", 3);
+-- call RegistraUtente("pizzabarma", "Bar", "Man", "Milano", '2003-01-21', "Torino", "ZZZZYYYYTTTTXXXZ", "bar", 4);
