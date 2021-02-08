@@ -553,12 +553,15 @@ begin
 	end if;
 end!
 
-create procedure TentaLogin(in usern varchar(10), in pwd varchar(45), out userRole tinyint)
+create procedure TentaLogin(
+	in usern varchar(10), 
+	in pwd varchar(45), 
+	out userRole tinyint)
 begin
+	set userRole = 0;
+
 	set transaction read only;
 	set transaction isolation level read committed;
-
-	set userRole = 0;
 	
 	start transaction;
 
@@ -618,7 +621,9 @@ begin
 	commit;
 end!
 
-create procedure RipristinoPassword(in usern varchar(10), in pwd varchar(45))
+create procedure RipristinoPassword(
+	in usern varchar(10), 
+	in pwd varchar(45))
 begin
 	set transaction isolation level read committed;
 
@@ -634,7 +639,9 @@ begin
 	commit;
 end!
 
-create procedure AggiungiNuovoTavolo(in numt smallint, in maxcomm tinyint)
+create procedure AggiungiNuovoTavolo(
+	in numt smallint, 
+	in maxcomm tinyint)
 begin
 	declare exit handler for sqlexception
 	begin
@@ -695,7 +702,9 @@ begin
 	commit;
 end!
 
-create procedure AssociaProdottoAIngrediente(in nomeProd varchar(20), in nomeIng varchar(20))
+create procedure AssociaProdottoAIngrediente(
+	in nomeProd varchar(20), 
+	in nomeIng varchar(20))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -713,7 +722,9 @@ begin
 	commit;
 end!
 
-create procedure AggiungiTurno(in inizio datetime, in fine datetime)
+create procedure AggiungiTurno(
+	in inizio datetime, 
+	in fine datetime)
 begin
 	declare exit handler for sqlexception
 	begin
@@ -771,7 +782,9 @@ begin
 	commit;
 end!
 
-create procedure RimuoviAssocProdottoEIngrediente(in nomeProd varchar(20), in nomeIng varchar(20))
+create procedure RimuoviAssocProdottoEIngrediente(
+	in nomeProd varchar(20), 
+	in nomeIng varchar(20))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -961,7 +974,9 @@ begin
 	commit;
 end!
 
-create procedure IncDispIngrediente(in nomeIng varchar(20), in incBy int)
+create procedure IncDispIngrediente(
+	in nomeIng varchar(20), 
+	in incBy int)
 begin
 	set transaction isolation level read committed;
 
@@ -977,22 +992,26 @@ begin
 	commit;
 end!
 
-create function InTimeRange(monthly boolean, tm datetime)
+create function InTimeRange(
+	monthly boolean, 
+	tm datetime, 
+	nowtime datetime)
 returns boolean deterministic
 begin
-	set @current_time = now();
-	set @by_month = YEAR(@current_time) = YEAR(tm) and
-			MONTH(@current_time) = MONTH(tm);
+	set @by_month = YEAR(nowtime) = YEAR(tm) and
+			MONTH(nowtime) = MONTH(tm);
 
 	if monthly then
 		return @by_month;
 	end if;
 
-	return @by_month and DAY(@current_time) = DAY(tm);
+	return @by_month and DAY(nowtime) = DAY(tm);
 end!
 
 create procedure OttieniEntrate(in mensili boolean)
 begin
+	set @current_time = now();
+
 	set transaction read only;
 	set transaction isolation level repeatable read;
 
@@ -1004,14 +1023,14 @@ begin
 	from
 		Scontrino
 	where
-		IsPagato and InTimeRange(mensili, DataOraEmissione);
+		IsPagato and InTimeRange(mensili, DataOraEmissione, @current_time);
 
 	select
 		IdFiscale, DataOraEmissione, CostoTotale
 	from
 		Scontrino
 	where
-		IsPagato and InTimeRange(mensili, DataOraEmissione);
+		IsPagato and InTimeRange(mensili, DataOraEmissione, @current_time);
 
 	commit;
 end!
@@ -1329,11 +1348,12 @@ begin
 	commit;
 end!
 
-create function CanWorkOnTable(dataOraOcc datetime, usern varchar(10))
+create function CanWorkOnTable(
+	dataOraOcc datetime, 
+	usern varchar(10), 
+	nowtime datetime)
 returns boolean deterministic
 begin
-	set @current_time = now();
-
 	if exists(
 		select
 			*
@@ -1342,8 +1362,8 @@ begin
 				Tocc.Tavolo = Ta.NumTavolo) join TurnoAssegnato TuAs on
 					TuAs.Tavolo = Ta.NumTavolo join Turno Tu on
 						Tu.DataOraInizio = TuAs.Turno and
-						Tu.DataOraInizio <= @current_time and
-						@current_time <= Tu.DataOraFine
+						Tu.DataOraInizio <= nowtime and
+						nowtime <= Tu.DataOraFine
 		where
 			TuAs.Cameriere = usern and 
 			Tocc.DataOraOccupazione = dataOraOcc) then
@@ -1354,7 +1374,9 @@ begin
 	return false;
 end!
 
-create procedure PrendiOrdinazione(in dataOraOcc datetime, in usern varchar(10))
+create procedure PrendiOrdinazione(
+	in dataOraOcc datetime, 
+	in usern varchar(10))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -1366,13 +1388,14 @@ begin
 
 	start transaction;
 
-	if CanWorkOnTable(dataOraOcc, usern) then
-		set @counter = (select 
-							count(*) 
-						from 
-							Ordinazione 
-						where
-							TavoloOccupato = dataOraOcc) + 1;
+	if CanWorkOnTable(dataOraOcc, usern, now()) then
+		set @counter = (
+			select 
+				count(*) 
+			from 
+				Ordinazione 
+			where
+				TavoloOccupato = dataOraOcc) + 1;
 
 		insert into
 			Ordinazione(TavoloOccupato, NumOrdinazionePerTavolo)
@@ -1386,7 +1409,9 @@ begin
 	commit;
 end!
 
-create procedure ChiudiOrdinazione(in dataOraOcc datetime, in usern varchar(20))
+create procedure ChiudiOrdinazione(
+	in dataOraOcc datetime, 
+	in usern varchar(20))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -1394,24 +1419,25 @@ begin
 		resignal;
 	end;
 
+	set @current_time = now();
+
 	set transaction isolation level repeatable read;
 
 	start transaction;
 	
-	if CanWorkOnTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern, @current_time) then
 		set @numOrd =(
-						select 
-							count(*) 
-						from 
-							Ordinazione 
-						where
-							TavoloOccupato = dataOraOcc
-		);
+			select 
+				count(*) 
+			from 
+				Ordinazione 
+			where
+				TavoloOccupato = dataOraOcc);
 
 		update
 			Ordinazione
 		set
-			DataOraRichiesta = now()
+			DataOraRichiesta = @current_time
 		where
 			TavoloOccupato = dataOraOcc and
 			DataOraRichiesta is NULL and
@@ -1440,7 +1466,7 @@ begin
 
 	start transaction;
 
-	if CanWorkOnTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern, now()) then
 		set @numOrd = (
 			select
 				NumOrdinazionePerTavolo
@@ -1455,13 +1481,15 @@ begin
 				set message_text = "Ordinazione chiusa";
 		end if;
 
-		set @numSc = (select 
-							count(*) 
-						from 
-							SceltaDelCliente 
-						where 
-							TavoloOccupato = dataOraOcc and 
-							NumOrdinazionePerTavolo = @numOrd) + 1;
+		set @numSc = (
+			select 
+				count(*) 
+			from 
+				SceltaDelCliente 
+			where 
+				TavoloOccupato = dataOraOcc and 
+			NumOrdinazionePerTavolo = @numOrd) + 1;
+
 		insert into 
 			SceltaDelCliente(TavoloOccupato, 
 							NumOrdinazionePerTavolo, 
@@ -1480,14 +1508,16 @@ begin
 	commit;
 end!
 
-create procedure OttieniSceltePerOrdinazione(in dataOraOcc datetime, in usern varchar(10))
+create procedure OttieniSceltePerOrdinazione(
+	in dataOraOcc datetime, 
+	in usern varchar(10))
 begin
 	set transaction read only;
 	set transaction isolation level read committed;
 
 	start transaction;
 
-	if CanWorkOnTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern, now()) then
 		select
 			Sdc.NumOrdinazionePerTavolo as NumOrdinazionePerTavolo,
 			Sdc.NumSceltaPerOrdinazione as NumSceltaPerOrdinazione, 
@@ -1525,7 +1555,7 @@ begin
 
 	start transaction;
 
-	if CanWorkOnTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern, now()) then
 		insert into
 			AggiuntaAlProdotto(
 				TavoloOccupato,
@@ -1566,7 +1596,7 @@ begin
 		SceltaDelCliente join TavoloOccupato on
 			TavoloOccupato = DataOraOccupazione
 	where
-		CanWorkOnTable(TavoloOccupato, usern) and
+		CanWorkOnTable(TavoloOccupato, usern, now()) and
 		DataOraEspletata is not NULL and
 		DataOraCompletamento is NULL;
 	
@@ -1585,15 +1615,17 @@ begin
 		resignal;
 	end;
 
+	set @current_time = now();
+
 	set transaction isolation level read committed;
 
 	start transaction;
 
-	if CanWorkOnTable(dataOraOcc, usern) then
+	if CanWorkOnTable(dataOraOcc, usern, @current_time) then
 		update
 			SceltaDelCliente
 		set
-			DataOraCompletamento = now()
+			DataOraCompletamento = @current_time
 		where
 			TavoloOccupato = dataOraOcc and
 			NumOrdinazionePerTavolo = numOrd and
@@ -1657,8 +1689,7 @@ begin
 		from
 			UtenteLavoratore
 		where
-			Username = usern
-	);
+			Username = usern);
 
 	set @isBarMenu = (
 		select
@@ -1666,8 +1697,7 @@ begin
 		from
 			ProdottoNelMenu
 		where
-			Nome = nomeProd	
-	);
+			Nome = nomeProd);
 
 	if @isBarMenu = true and @role <> 4 then
 		signal sqlstate '45016'
